@@ -1,0 +1,16 @@
+{
+	"description": "The CodeIgniter starter",
+	"name": "codeigniter/framework",
+	"type": "project",
+	"require": {
+		"php": ">=7.0.0",
+		"thetechnicalcircle/codeigniter_social_login": "dev-master"
+	},
+	"suggest": {
+		"paragonie/random_compat": "Provides better randomness in PHP 5.x"
+	},
+	"require-dev": {
+		"mikey179/vfsStream": "1.1.*",
+		"phpunit/phpunit": "7.* || 8.*"
+	}
+}
