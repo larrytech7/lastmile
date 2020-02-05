@@ -14,6 +14,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 		<p>The corresponding controller for this page is found at:</p>
 		<code>application/controllers/Home.php</code>
 
+		<p>
+			<a href="<?= site_url('login/facebook') ?>">Login Facebook</a> | <a href="<?= site_url('login/google')?>">Login Google</a> | 
+			<a href="<?= site_url('login/twitter') ?>">Login with Twitter</a> | <a href="<?= site_url('login/linkedin')?>">Login LinkedIn</a> | 
+		</p>
+
 		<p>If you are exploring CodeIgniter for the very first time, you should start by reading the <a href="user_guide/">User Guide</a>.</p>
 	</div>
 
