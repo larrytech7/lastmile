@@ -1,7 +1,6 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
-require_once('ViewController.php');
-use Social;
+require_once ("ViewController.php");
 
 class Home extends ViewController {
 
@@ -92,7 +91,7 @@ class Home extends ViewController {
 		$client_id = $this->config->item('FACEBOOK_APP_ID');
 		$client_secret = $this->config->item('FACEBOOK_APP_SECRET');
 		$scope = "public_profile, email, user_friends";
-		$socialLogin = new Social();
+		$socialLogin = $this->social;
 		$response = $socialLogin->facebook_connect(NULL,$this->session, site_url(), $client_id, $client_secret, $scope);
 		if(!empty($response['redirectURL'])){
 			//request requires a redirect

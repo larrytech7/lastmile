@@ -1,5 +1,6 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
+require_once(FCPATH."application/vendor/thetechnicalcircle/codeigniter_social_login/src/Social.php");
 
 class ViewController extends CI_Controller {
 
@@ -7,6 +8,7 @@ class ViewController extends CI_Controller {
 	protected  $footer;
 	protected  $body;
 	protected $data;
+	public $social;
 
 	/**
 	 * Constructor to build page views
@@ -18,6 +20,7 @@ class ViewController extends CI_Controller {
 		$this->body = $main;
 		$this->footer = $footer;
 		$this->data = $data;
+		$this->social = new Social();
 	}
 
 	public function loadView(){
