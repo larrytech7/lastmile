@@ -37,7 +37,7 @@ Installation
 
 - Just clone or download the project to your webroot/host and you are good to go.
 - You would need to generate the application/config/database.php file and set your database credentials.
-- You would also need to generate the application/config/database.php file and configure your details. This file is not commited due to many sensitive data configs there
+- You would also need to generate the application/config/config.php file and configure your details. This file is not commited due to many sensitive data configs there
 - Run the migration by starting the migrate controller. Fix any errors that may arise and continue.
 - To use the social logins, set the social login credentials you wish to use in the config file
 
