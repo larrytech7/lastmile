@@ -1,8 +1,8 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
-require_once(FCPATH."application/vendor/thetechnicalcircle/codeigniter_social_login/src/Social.php");
 
-class ViewController extends CI_Controller {
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class ViewController extends CI_Controller{
 
 	protected $header;
 	protected  $footer;
@@ -13,14 +13,12 @@ class ViewController extends CI_Controller {
 	/**
 	 * Constructor to build page views
 	 */
-	public function __construct($header = 'public/', $footer = 'public/', $main = 'public', $data = [])
-	{
+	public function __construct($header = 'public/', $footer = 'public/', $main = 'public', $data = []){
 		parent::__construct();
 		$this->header = $header;
 		$this->body = $main;
 		$this->footer = $footer;
 		$this->data = $data;
-		$this->social = new Social();
 	}
 
 	public function loadView(){
@@ -32,7 +30,7 @@ class ViewController extends CI_Controller {
 	/**
 	 * @return mixed
 	 */
-	public function getHeader()
+	public function getHead()
 	{
 		return $this->header;
 	}
@@ -40,7 +38,7 @@ class ViewController extends CI_Controller {
 	/**
 	 * @param mixed $header
 	 */
-	public function setHeader($header)
+	public function setHead($header)
 	{
 		$this->header = $header;
 		return $this;
