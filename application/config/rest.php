@@ -94,7 +94,7 @@ $config['enable_emulate_request'] = true;
 | e.g: My Secret REST API
 |
 */
-$config['rest_realm'] = 'MOCK MOMO PAY REST API';
+$config['rest_realm'] = 'MOCK PAYMENTS REST API';
 
 /*
 |--------------------------------------------------------------------------
