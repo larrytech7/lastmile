@@ -38,6 +38,6 @@ class Migration_Create_Transaction extends CI_Migration{
     }
 
     public function down(){
-        $this->dbforge->drop_table('transactions', true);
+        $this->dbforge->drop_table('transactions');
     }
 }

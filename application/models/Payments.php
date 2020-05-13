@@ -7,10 +7,10 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * Date: 1/14/2020
  * Time: 11:23 AM
  */
-class Providers extends CI_Model{
+class Payments extends CI_Model{
 
-    protected $table = 'providers';
-    protected $key = 'provider_id';
+    protected $table = 'payments';
+    protected $key = 'payment_id';
 
     public function __construct(){
         parent::__construct();
@@ -35,7 +35,7 @@ class Providers extends CI_Model{
      * @return int inserted id
      */
     public function insert($data){
-        return $this->db->insert($this->table, $data);
+        $this->db->insert($data);
     }
 
     /**

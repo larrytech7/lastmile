@@ -7,10 +7,10 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * Date: 1/14/2020
  * Time: 11:23 AM
  */
-class Providers extends CI_Model{
+class Transactions extends CI_Model{
 
-    protected $table = 'providers';
-    protected $key = 'provider_id';
+    protected $table = 'transactions';
+    protected $key = 'transactions_id';
 
     public function __construct(){
         parent::__construct();
