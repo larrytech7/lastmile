@@ -1,16 +1,24 @@
 <?php
+/**
+ * @author Akah <l.akah@sevenadvancedacademy.com>
+ * Contributors : 
+ */
+
 defined('BASEPATH') OR exit('No direct script access allowed');
-require_once('ProviderInterface.php');
+require_once ("ProviderInterface.php");
+
 use GuzzleHttp\Psr7\Request;
 use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
 
 class EcobankProvider implements ProviderInterface{
 
     protected $httpAdapter;
-	protected $baseUrl = "https://developer.ecobank.com/corporateapi/";
+    protected $baseUrl = "https://developer.ecobank.com/corporateapi/";
+    protected $responseData;
 
     public function __construct(){
         $this->httpAdapter = new GuzzleAdapter(null);
+        $this->responseData = [];
     }
 
     public function authorize(array $data = []){
@@ -56,23 +64,42 @@ class EcobankProvider implements ProviderInterface{
                     'merchantID' => 'ECMT0001',
                     'secureSecret' => 'ENEO@ADMIN1',
                 ],
-                "secureHash" => ''
+                "secureHash" => '7f137705f4caa39dd691e771403430dd23d27aa53cefcb97217927312e77847bca6b8764f487ce5d1f6520fd7227e4d4c470c5d1e7455822c8ee95b10a0e9855'
             ];
             $req = new Request('POST', $cardPaymentUrl, $header, json_encode($body));
             $response = $this->httpAdapter->sendRequest($req);
             
-            return [
-                'message' => $response->getStatusCode() == 202 ? "Payment request made to user. Awaiting confirmation" : json_decode($response->getBody(), true),
-                'data' => json_decode($response->getBody(), true),
-                'status' => $response->getStatusCode()
+            $data = json_decode($response->getBody(), true);
+            $this->responseData =  [
+                'status' => $response->getStatusCode(),
+                'message' => $data['response_message'],
+                'response_content' => $data['response_content'] 
             ];
+            return $this->responseData;
+
         }else{
             return [
-                'data' => '',
-                'status' => $response->getStatusCode(),
-                'message' => $response->getBody()->getContents(),
+                'error' => 'Error ocurred with the request. Please try again',
+                'status' => $authResponse->getStatusCode(),
+                'message' => $authResponse->getBody()->getContents(),
             ];
         }
         
+    }
+
+    public function refund(array $data = []){
+        
+    }
+
+    public function isRedirect(){
+        return array_key_exists('response_content', $this->responseData);
+    }
+
+    public function getRedirectUrl(){
+        return array_key_exists('response_content', $this->responseData) ? $this->responseData['response_content'] : "";
+    }
+
+    private function getSecureHash($message){
+        return hash("sha512", $message);
     }
 }

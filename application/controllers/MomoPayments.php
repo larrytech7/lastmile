@@ -6,7 +6,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 use GuzzleHttp\Psr7\Request;
 use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
 
-class Payments extends RestController {
+class MomoPayments extends RestController {
 
 	protected $httpAdapter;
 	protected $baseUrl = "https://sandbox.momodeveloper.mtn.com/";

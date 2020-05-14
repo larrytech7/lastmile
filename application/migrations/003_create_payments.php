@@ -30,6 +30,10 @@ class Migration_Create_Payments extends CI_Migration{
                 'constraint' => '11',
                 'null' => false,
             ],
+            'payment_callback' => [
+                'type' => 'text',
+                'null' => true,
+            ],
             'payment_status' => [
                 'type' => 'ENUM',
                 'constraint' => ['SUCCESS', 'PENDING', 'FAILED'],
