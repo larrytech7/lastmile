@@ -21,6 +21,8 @@ class Gateway extends RestController {
 
 	//TODO : Setup gateeway configs here for other providers
 	protected $gatewayConfig = [
+		'subscription-key' => 'e7f1a6f931c74b019add9b3d018e9350', //momo
+		'x-target-environment' => 'mtncameroon', //momo
 		'userId' => 'iamaunifieddev103', //ecobank
 		'password' => '$2a$10$Wmame.Lh1FJDCB4JJIxtx.3SZT0dP2XlQWgj9Q5UAGcDLpB0yRYCC', //ecobank
 		'callback_url' => '' //general
@@ -45,11 +47,11 @@ class Gateway extends RestController {
 	}
 
 	public function index_get(){
-		redirect('gateway/gateways');
+		redirect('http://52.174.179.186/payments-web/hostedPayment/payments', 'location', 301);
 	}
 	
 	public function index_post(){
-		redirect('gateway/gateways');
+		redirect('http://52.174.179.186/payments-web/hostedPayment/payments', 'location', 301);
 	}
 
 	/**
