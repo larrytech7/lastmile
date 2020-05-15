@@ -45,7 +45,7 @@ class Providers extends CI_Model{
      * @return int inserted id
      */
     public function insertBulk($data){
-        return $this->db->insert_bulk($this->table, $data);
+        return $this->db->insert_batch($this->table, $data);
     }
 
     public function delete($id){

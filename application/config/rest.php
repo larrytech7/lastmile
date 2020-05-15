@@ -172,6 +172,7 @@ $config['auth_library_function'] = '';
 */
            $config['auth_override_class_method']['payments']['index'] = 'none';
            $config['auth_override_class_method']['gateway']['callback'] = 'none';
+           $config['auth_override_class_method']['gateway']['add'] = 'basic';
 /*
 |           $config['auth_override_class_method']['deals']['insert'] = 'digest';
 |           $config['auth_override_class_method']['accounts']['user'] = 'basic';
@@ -217,7 +218,8 @@ $config['auth_library_function'] = '';
 */
 $config['rest_valid_logins'] = [
   'sevenpay-payments' => 'sevenpay-payments@2020',
-  'myeasylight-payments' => 'easylight-payments@2020*'
+  'myeasylight-payments' => 'easylight-payments@2020*',
+  'admin-payments' => 'dev-admin@2020*'
 ];
 
 /*

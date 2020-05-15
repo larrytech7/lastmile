@@ -28,6 +28,13 @@ class Transactions extends CI_Model{
         ->get();
     }
 
+    public function getWhere($where){
+        return $this->db->from($this->table)
+        ->where($where)
+        ->where('delete_time', NULL)
+        ->get();
+    }
+
     /**
      * insert provider data
      *
@@ -45,7 +52,7 @@ class Transactions extends CI_Model{
      * @return int inserted id
      */
     public function insertBulk($data){
-        return $this->db->insert_bulk($this->table, $data);
+        return $this->db->insert_batch($this->table, $data);
     }
 
     public function delete($id){

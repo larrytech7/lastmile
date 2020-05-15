@@ -29,10 +29,13 @@ class Payments extends CI_Model{
     }
     
     public function getWhere($where){
-        return $this->db->from($this->table)
-        ->where($where)
-        ->where('delete_time', NULL)
-        ->get();
+        return $this->db
+            ->select('provider_name, provider_short_tag, payment_id, payment_amount, payment_provider, payment_callback, payment_status')
+            ->from($this->table)
+            ->join('providers', 'providers.provider_short_tag = payments.payment_provider')
+            ->where($where)
+            ->where('delete_time', NULL)
+            ->get();
     }
 
     /**
@@ -52,20 +55,18 @@ class Payments extends CI_Model{
      * @return int inserted id
      */
     public function insertBulk($data){
-        return $this->db->insert_bulk($this->table, $data);
+        return $this->db->insert_batch($this->table, $data);
     }
     
     public function update($id, $update){
         $update['update_time'] = date('Y-m-d H:i:s');
-        
+
         return $this->db
             ->set($update)
             ->where('payment_id', $id)
             ->where('delete_time', NULL)
             ->update($this->table);
     }
-
-    
 
     public function delete($id){
         return $this->db

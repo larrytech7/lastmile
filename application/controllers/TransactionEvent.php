@@ -11,7 +11,7 @@ class TransactionEvent extends CI_Controller{
 	/**
 	 * Constructor to build page views
 	 */
-	public function __construct($header = 'public/', $footer = 'public/', $main = 'public', $data = []){
+	public function __construct(){
 		parent::__construct();
 		$this->load->model('providers');
 		$this->load->model('payments');
