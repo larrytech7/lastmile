@@ -199,6 +199,7 @@ $config['auth_library_function'] = '';
 */
             $config['auth_override_class_method_http']['payments']['index']['*'] = 'none';
             $config['auth_override_class_method_http']['gateway']['callback']['*'] = 'none';
+            $config['auth_override_class_method_http']['gateway']['index']['*'] = 'none';
 /*
 |            $config['auth_override_class_method_http']['deals']['view']['get'] = 'none';
 |            $config['auth_override_class_method_http']['deals']['insert']['post'] = 'none';

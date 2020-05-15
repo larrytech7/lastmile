@@ -15,10 +15,12 @@ class EcobankProvider implements ProviderInterface{
     protected $httpAdapter;
     protected $baseUrl = "https://developer.ecobank.com/corporateapi/";
     protected $responseData;
+    protected $config = [];
 
-    public function __construct(){
+    public function __construct($config = ''){
         $this->httpAdapter = new GuzzleAdapter(null);
         $this->responseData = [];
+        $this->config = $config;
     }
 
     public function authorize(array $data = []){
@@ -29,8 +31,8 @@ class EcobankProvider implements ProviderInterface{
             'Accept' => "application/json"
 		];
         $body = [
-            "userId" => $data['userId'] ?? '',
-            "password" => $data['password'] ?? ''
+            "userId" => $this->config['userId'] ?? '',
+            "password" => $this->config['password'] ?? ''
         ];
         $req = new Request('POST', $auth_url, $header, json_encode($body));
 		return $this->httpAdapter->sendRequest($req);
@@ -57,7 +59,7 @@ class EcobankProvider implements ProviderInterface{
                     'currency' => $data['currency'] ?? 'CFA',
                     'locale' => 'en-US',
                     'orderInfo' => random_string(),
-                    'returnUrl' => $data['callback_url'] ?? '',
+                    'returnUrl' => $this->config['callback_url'] ?? '',
                 ],
                 "merchantDetails" => [
                     'accessCode' => '2D726804',

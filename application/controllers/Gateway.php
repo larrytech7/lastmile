@@ -1,6 +1,7 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 require_once (__DIR__."/../utils/EcobankProvider.php");
+require_once (__DIR__."/../utils/MobilemoneyProvider.php");
 require_once("TransactionEvent.php");
 
 use GuzzleHttp\Psr7\Request;
@@ -12,20 +13,23 @@ class Gateway extends RestController {
 	protected $httpAdapter;
 
 	protected $paymentProviders = [
-		'MTNMOMO' => EcobankProvider::class,
+		'MTNMOMO' => MobilemoneyProvider::class,
 		'ORANGEMO' => '',
 		'ECOBANK' => EcobankProvider::class,
 		'YUP' => '',
 		'EU' => '',
 	];
 
-	//TODO : Setup gateeway configs here for other providers
+	//TODO : Setup gateway configs here for all payment providers
 	protected $gatewayConfig = [
 		'subscription-key' => 'e7f1a6f931c74b019add9b3d018e9350', //momo
 		'x-target-environment' => 'mtncameroon', //momo
+		'api_key' => '', //momo
+		'api_user' => '', //momo
 		'userId' => 'iamaunifieddev103', //ecobank
 		'password' => '$2a$10$Wmame.Lh1FJDCB4JJIxtx.3SZT0dP2XlQWgj9Q5UAGcDLpB0yRYCC', //ecobank
-		'callback_url' => '' //general
+		'callback_url' => '', //general
+		'mode' => 'live' //general
 	];
 
 	public function __construct(){
@@ -47,11 +51,40 @@ class Gateway extends RestController {
 	}
 
 	public function index_get(){
-		redirect('http://52.174.179.186/payments-web/hostedPayment/payments', 'location', 301);
+		//redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
+		$momoProvider = new MobilemoneyProvider($this->gatewayConfig);
+		$userData = $momoProvider->sandboxUser($this->gatewayConfig); //get api user
+		if($userData['status'] == 201){ //get api key
+			$user = $userData['data']['user'];
+			$apiKeyData = $momoProvider->sandboxApi($this->gatewayConfig, $user);
+			if($apiKeyData['status'] == 201){ //get token
+				$apiKey = $apiKeyData['data']['api-key'];
+				$this->gatewayConfig['api_user'] = $user;
+				$this->gatewayConfig['api_key'] = $apiKey;
+				$tokenData = $momoProvider->sandboxToken($this->gatewayConfig);
+				if($tokenData['status'] == 200 ){ //make payment request
+					$token = $tokenData['data']['token'];
+					$this->gatewayConfig['token'] = $token;
+					$payload = [
+						'amount' => '100',
+						'currency' => 'EUR',
+						'externalId' => '3324234',
+						'payer' => [
+							'partyIdType' => "MSISDN",
+							'partyId' => "678656032",
+						],
+						'payerMessage' => 'ok',
+						'payeeNote' => 'ok',
+					];
+					$paymentData = $momoProvider->sandboxPay($this->gatewayConfig, $payload);
+					var_dump($paymentData);
+				}
+			}
+		} 
 	}
 	
 	public function index_post(){
-		redirect('http://52.174.179.186/payments-web/hostedPayment/payments', 'location', 301);
+		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
 	}
 
 	/**
@@ -96,8 +129,7 @@ class Gateway extends RestController {
 		$amount = $this->post('amount');
 		$transaction_id = $this->post('transaction_id');
 		$callback_url = $this->post('return_url');
-		//TODO : Read transaction data from request, parse and insert
-		$this->gatewayConfig['transaction_amount'] = $amount;
+		$data['transaction_amount'] = $amount; //data to pass to the payment processor
 		//save pending payment
 		$payment = [
 			'payment_id' => time()+random_int(1,1000),
@@ -108,14 +140,18 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$gatewayConfig['callback_url'] = site_url('gateway/callback').'?t_id='.$this->encryption->encrypt($payment['payment_transaction_id']);
+		$this->gatewayConfig['callback_url'] = site_url('gateway/callback').'?t_id='.$this->encryption->encrypt($payment['payment_transaction_id']);
 		
-		$providerGateway = new $this->paymentProviders[$gateway]; //instantiates the right gateway according to the gateway code
-		$response = $providerGateway->purchase($this->gatewayConfig); //returns data from querying the actual provider
-		
+		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
+		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
+		/* $this->response([
+			'status' => $response->getStatusCode(),
+		], 
+		401); */
 		$this->response([
 			'status' => $response['status'],
 			'message' => $response['message'],
+			'messages' => $response['tokenmessage'],
 			'isRedirect' => $providerGateway->isRedirect(),
 			'redirect_url' => $providerGateway->getRedirectUrl(),
 		], 

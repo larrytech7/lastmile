@@ -14,16 +14,18 @@ class MobilemoneyProvider implements ProviderInterface{
 
     protected $httpAdapter;
     protected $endpoint = [
-        'live' => '',
+        'live' => 'https://ericssonbasicapi1.azure-api.net/',
         'test' => 'https://sandbox.momodeveloper.mtn.com/',
     ];
     protected $baseUrl = "";
     protected $responseData;
+    protected $configs = [];
 
-    public function __construct(){
+    public function __construct($config){
         $this->httpAdapter = new GuzzleAdapter(null);
         $this->responseData = [];
-        $this->baseUrl = $this->endpoint['test']; //TODO Change when going live
+        $this->configs = $config;
+        $this->baseUrl = $this->endpoint[$config['mode']];
     }
 
     /**
@@ -33,60 +35,39 @@ class MobilemoneyProvider implements ProviderInterface{
      * @return HttpResponse object
      */
     public function authorize(array $data = []){
-        $auth_url = $this->baseUrl."v1_0/apiuser";
+        $auth_url = "https://proxy.momoapi.mtn.com/collection/"."token";
         $header = [
-            'X-Reference-Id' => $this->generateUuidV4(),
+            'Authorization' => 'Basic '. base64_encode($this->configs['api_user'].':'.$this->configs['api_key']),
             'Content-Type' => "application/json",
-            'Ocp-Apim-Subscription-Key' => $data['subscription-key']
+            'Ocp-Apim-Subscription-Key' => $this->configs['subscription-key']
 		];
         $body = [
-            "providerCallbackHost" => $data['callback_url'] ?? '',
+            "providerCallbackHost" => $this->configs['callback_url'] ?? '',
         ];
         $req = new Request('POST', $auth_url, $header, json_encode($body));
 		return $this->httpAdapter->sendRequest($req);
     }
 
     public function purchase(array $data = []){
-        $cardPaymentUrl = $this->baseUrl.'merchant/card';
-        $authResponse = $this->authorize($data);
+        $authResponse = $this->authorize($data); //get token
         $authData = json_decode($authResponse->getBody()->getContents(), true);
 
         if($authResponse->getStatusCode() == 200 ){
             $header = [
                 'Authorization' => 'Bearer '. $authData['token'],
-                'Origin' => 'developer.ecobank.com',
                 'Content-Type' => "application/json",
-                'Accept' => "application/json"
+                'Ocp-Apim-Subscription-Key' => $this->configs['subscription-key']
             ];
-            //TODO : This configuration needs to be more dynamic
-            $body = [
-                "paymentDetails" => [
-                    'requestID' => time(),
-                    'productCode' => "ENP".random_int(1,1000),
-                    'amount' => $data['transaction_amount'],
-                    'currency' => $data['currency'] ?? 'CFA',
-                    'locale' => 'en-US',
-                    'orderInfo' => random_string(),
-                    'returnUrl' => $data['callback_url'] ?? '',
-                ],
-                "merchantDetails" => [
-                    'accessCode' => '2D726804',
-                    'merchantID' => 'ECMT0001',
-                    'secureSecret' => 'ENEO@ADMIN1',
-                ],
-                "secureHash" => '7f137705f4caa39dd691e771403430dd23d27aa53cefcb97217927312e77847bca6b8764f487ce5d1f6520fd7227e4d4c470c5d1e7455822c8ee95b10a0e9855'
-            ];
-            $req = new Request('POST', $cardPaymentUrl, $header, json_encode($body));
+            $url = "https://proxy.momoapi.mtn.com/collection/v1_0/" . "requesttopay";
+            $req = new Request('POST', $url, $header, json_encode($data));
             $response = $this->httpAdapter->sendRequest($req);
             
             $data = json_decode($response->getBody(), true);
             $this->responseData =  [
                 'status' => $response->getStatusCode(),
-                'message' => $data['response_message'],
-                'response_content' => $data['response_content'] 
+                'message' => $data['message']
             ];
             return $this->responseData;
-
         }else{
             return [
                 'error' => 'Error ocurred with the request. Please try again',
@@ -94,7 +75,6 @@ class MobilemoneyProvider implements ProviderInterface{
                 'message' => $authResponse->getBody()->getContents(),
             ];
         }
-        
     }
 
     public function refund(array $data = []){
@@ -118,5 +98,82 @@ class MobilemoneyProvider implements ProviderInterface{
 			$data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
 			$data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
 			return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+    }
+
+    public function sandboxUser($configs){
+        $url = "https://ericssonbasicapi1.azure-api.net/provisioning/v1_0/apiuser";
+        $header = [
+            'X-Reference-Id' => $this->generateUuidV4(),
+            'Content-Type' => "application/json",
+            'Ocp-Apim-Subscription-Key' => $configs['subscription-key']
+		];
+        $body = [
+            "providerCallbackHost" => $configs['callback_url'] ?? '',
+        ];
+        $req = new Request('POST', $url, $header, json_encode($body));
+        $response = $this->httpAdapter->sendRequest($req);
+        return [
+            'status' => $response->getStatusCode(),
+            'message' => $response->getBody()->getContents(),
+            'data' => [
+                'user' => $response->getStatusCode() == 201 ? $header['X-Reference-Id'] : ''
+            ]
+        ];
+    }
+    
+    public function sandboxApi($configs, $user){
+        $url = "https://ericssonbasicapi1.azure-api.net/provisioning/v1_0/apiuser/".$user."/apikey";
+        $header = [
+            'Content-Type' => "application/json",
+            'Ocp-Apim-Subscription-Key' => $configs['subscription-key']
+		];
+        $req = new Request('POST', $url, $header);
+        $response = $this->httpAdapter->sendRequest($req);
+        $api = json_decode($response->getBody()->getContents(), true);
+        return [
+            'status' => $response->getStatusCode(),
+            'message' => $response->getBody()->getContents(),
+            'data' => [
+                'api-key' => $response->getStatusCode() == 201 ? $api['apiKey'] : ''
+            ]
+        ];
+    }
+
+    public function sandboxToken($configs){
+        $url = "https://ericssonbasicapi1.azure-api.net/token";
+        $header = [
+            'Authorization' => 'Basic '. base64_encode($configs['api_user'].':'.$configs['api_key']),
+            'Content-Type' => "application/json",
+            'Ocp-Apim-Subscription-Key' => $configs['subscription-key']
+		];
+        $req = new Request('POST', $url, $header);
+        $response = $this->httpAdapter->sendRequest($req);
+        $token = json_decode($response->getBody()->getContents(), true);
+        return [
+            'status' => $response->getStatusCode(),
+            'message' => $response->getBody()->getContents(),
+            'data' => [
+                'token' => $token['token']
+            ]
+        ];
+    }
+    
+    public function sandboxPay($configs, $body){
+        $url = "https://ericssonbasicapi1.azure-api.net/requesttopay";
+        $header = [
+            'Authorization' => 'Bearer '. $configs['token'],
+            'Content-Type' => "application/json",
+            'Ocp-Apim-Subscription-Key' => $configs['subscription-key']
+		];
+        $req = new Request('POST', $url, $header, json_encode($body));
+        $response = $this->httpAdapter->sendRequest($req);
+        $payment = json_decode($response->getBody()->getContents(), true);
+        return [
+            'status' => $response->getStatusCode(),
+            'message' => $response->getBody()->getContents(),
+            'data' => [
+                'payment' => $payment
+            ]
+        ];
     }
 }
