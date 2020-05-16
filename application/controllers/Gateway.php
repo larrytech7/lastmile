@@ -2,6 +2,8 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 require_once (__DIR__."/../utils/EcobankProvider.php");
 require_once (__DIR__."/../utils/MobilemoneyProvider.php");
+require_once (__DIR__."/../utils/OrangemoneyProvider.php");
+
 require_once("TransactionEvent.php");
 
 use GuzzleHttp\Psr7\Request;
@@ -14,7 +16,7 @@ class Gateway extends RestController {
 
 	protected $paymentProviders = [
 		'MTNMOMO' => MobilemoneyProvider::class,
-		'ORANGEMO' => '',
+		'ORANGEMO' => OrangemoneyProvider::class,
 		'ECOBANK' => EcobankProvider::class,
 		'YUP' => '',
 		'EU' => '',
@@ -26,10 +28,14 @@ class Gateway extends RestController {
 		'x-target-environment' => 'mtncameroon', //momo
 		'api_key' => '', //momo
 		'api_user' => '', //momo
+		'orange-api-user' => 'Ndeme',//'MYEASYLIGTHPREPROD', //orangemo
+		'orange-api-password' => 'Minipol88888',//'MYEASYLIGTHPREPROD2020', //orangemo
+		'orange-consumer-key' => 'YsxQPIh775FPVM97OB7g9JLj3EMa',//'MYEASYLIGTHPREPROD2020', //orangemo
+		'orange-consumer-secret' => 'IVUaxQ4zaOZz0rIOhJ43fviPNZoa',//'MYEASYLIGTHPREPROD2020', //orangemo
 		'userId' => 'iamaunifieddev103', //ecobank
 		'password' => '$2a$10$Wmame.Lh1FJDCB4JJIxtx.3SZT0dP2XlQWgj9Q5UAGcDLpB0yRYCC', //ecobank
 		'callback_url' => '', //general
-		'mode' => 'live' //general
+		'mode' => 'test' //general
 	];
 
 	public function __construct(){
@@ -133,6 +139,7 @@ class Gateway extends RestController {
 		//data to pass to the payment processor
 		$data['transaction_amount'] = $amount;
 		$data['phone_number'] = $phone_number;
+		$data['transaction_id'] = $transaction_id;
 		//save pending payment
 		$payment = [
 			'payment_id' => time()+random_int(1,1000),
