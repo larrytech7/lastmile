@@ -5,12 +5,12 @@
  */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
-require_once ("ProviderInterface.php");
+require_once ("AbstractProviderRequest.php");
 
 use GuzzleHttp\Psr7\Request;
 use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
 
-class EcobankProvider implements ProviderInterface{
+class EcobankProvider extends AbstractProviderRequest{
 
     protected $httpAdapter;
     protected $baseUrl = "https://developer.ecobank.com/corporateapi/";

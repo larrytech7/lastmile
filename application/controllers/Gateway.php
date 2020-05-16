@@ -127,9 +127,12 @@ class Gateway extends RestController {
 	public function makePayment_post(){
 		$gateway = $this->post('gateway');
 		$amount = $this->post('amount');
+		$phone_number = $this->post('phone_number');
 		$transaction_id = $this->post('transaction_id');
 		$callback_url = $this->post('return_url');
-		$data['transaction_amount'] = $amount; //data to pass to the payment processor
+		//data to pass to the payment processor
+		$data['transaction_amount'] = $amount;
+		$data['phone_number'] = $phone_number;
 		//save pending payment
 		$payment = [
 			'payment_id' => time()+random_int(1,1000),
@@ -140,7 +143,7 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = site_url('gateway/callback').'?t_id='.$this->encryption->encrypt($payment['payment_transaction_id']);
+		$this->gatewayConfig['callback_url'] = site_url('gateway/callback').'/'.$this->encryption->encrypt($payment['payment_transaction_id']);
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
@@ -151,7 +154,6 @@ class Gateway extends RestController {
 		$this->response([
 			'status' => $response['status'],
 			'message' => $response['message'],
-			'messages' => $response['tokenmessage'],
 			'isRedirect' => $providerGateway->isRedirect(),
 			'redirect_url' => $providerGateway->getRedirectUrl(),
 		], 
@@ -164,13 +166,17 @@ class Gateway extends RestController {
 
 	/**
 	 * Receive callback data from incoming payment requests and route it to the appropriate caller
-	 *
-	 * @return void
+	 * @param string $id ID of the transaction of the payment initiated
+	 * @return array response data
 	 */
-	public function callback_get(){
+	public function callback_post($id){
+		
+		$request_data = file_get_contents("php://input");
+		log_message('error', $request_data . ' ID '.$id);
+		$transaction_id = $this->encryption->decrypt($id);
+		$isCallbackSettled = false;
+		$message = '';
 		$payment_status = ''; //TODO
-		$transaction_id = $this->encryption->decrypt($this->get('t_id'));
-		//var_dump($transaction_id);
 		//retrieve the payment
 		$payments = $this->payments->getWhere(['payment_transaction_id' => $transaction_id])->result_object();
 		if(count($payments) > 0){
@@ -198,7 +204,16 @@ class Gateway extends RestController {
 			$response = $this->httpAdapter->sendRequest($req);
 			log_message('error', $response->getBody()->getContents());
 			//TODO : post payment to Eneopay
+
+			$message = 'Payment completed for transaction : '.$transaction_id;
+		}else{
+			$message = 'Payment Transaction not found for '.$transaction_id;
 		}
+
+		$this->response([
+			'status' => $isCallbackSettled,
+			'message' => $message
+		], $isCallbackSettled ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST);
 
 		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
 		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');

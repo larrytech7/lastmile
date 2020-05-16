@@ -34,7 +34,7 @@ class Payments extends CI_Model{
             ->from($this->table)
             ->join('providers', 'providers.provider_short_tag = payments.payment_provider')
             ->where($where)
-            ->where('delete_time', NULL)
+            ->where('payments.delete_time', NULL)
             ->get();
     }
 
