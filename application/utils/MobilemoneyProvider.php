@@ -59,7 +59,18 @@ class MobilemoneyProvider extends AbstractProviderRequest{
                 'Ocp-Apim-Subscription-Key' => $this->configs['subscription-key']
             ];
             $url = "https://proxy.momoapi.mtn.com/collection/v1_0/" . "requesttopay";
-            $req = new Request('POST', $url, $header, json_encode($data));
+            $payload = [
+                'amount' => $data['transaction_amount'] ?? '0',
+                'currency' => $data['currency'] ?? 'CFA',
+                'externalId' => '3324234',
+                'payer' => [
+                    'partyIdType' => "MSISDN",
+                    'partyId' => $data['phone_number'] ?? 'CFA',
+                ],
+                'payerMessage' => 'Bill payment',
+                'payeeNote' => 'Bill payment',
+            ];
+            $req = new Request('POST', $url, $header, json_encode($payload));
             $response = $this->httpAdapter->sendRequest($req);
             
             $data = json_decode($response->getBody(), true);
