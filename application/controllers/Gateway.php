@@ -84,7 +84,7 @@ class Gateway extends RestController {
 	}
 	
 	public function index_post(){
-		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
+		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 302);
 	}
 
 	/**
