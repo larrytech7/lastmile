@@ -42,6 +42,7 @@ class EcobankProvider extends AbstractProviderRequest{
         $cardPaymentUrl = $this->baseUrl.'merchant/card';
         $authResponse = $this->authorize($data);
         $authData = json_decode($authResponse->getBody()->getContents(), true);
+        log_message('error', 'token result'.$authResponse->getBody()->getContents());
 
         if($authResponse->getStatusCode() == 200 ){
             $header = [
@@ -53,20 +54,20 @@ class EcobankProvider extends AbstractProviderRequest{
             //TODO : This configuration needs to be more dynamic
             $body = [
                 "paymentDetails" => [
-                    'requestID' => time(),
-                    'productCode' => "ENP".random_int(1,1000),
-                    'amount' => $data['transaction_amount'],
-                    'currency' => $data['currency'] ?? 'CFA',
-                    'locale' => 'en-US',
-                    'orderInfo' => random_string(),
+                    'requestID' => '4466',//time(),
+                    'productCode' => 'GMT112',//"ENP".random_int(1,1000),
+                    'amount' => "50035",//$data['transaction_amount'],
+                    'currency' => 'GBP',//$data['currency'] ?? 'CFA',
+                    'locale' => 'en_AU',
+                    'orderInfo' => '255s',//random_string(),
                     'returnUrl' => $this->config['callback_url'] ?? '',
                 ],
                 "merchantDetails" => [
-                    'accessCode' => '2D726804',
-                    'merchantID' => 'ECMT0001',
-                    'secureSecret' => 'ENEO@ADMIN1',
+                    'accessCode' => '79742570',//'2D726804',
+                    'merchantID' => 'ETZ001',//'ECMT0001',
+                    'secureSecret' => 'sdsffd',//'ENEO@ADMIN1',
                 ],
-                "secureHash" => '7f137705f4caa39dd691e771403430dd23d27aa53cefcb97217927312e77847bca6b8764f487ce5d1f6520fd7227e4d4c470c5d1e7455822c8ee95b10a0e9855'
+                "secureHash" => '85dc50e24f6f36850f48390be3516c518acdc427c5c5113334c1c3f0ba122cdd37b06a10b82f7ddcbdade8d8ab92165e25ea4566f6f8a7e50f3c9609d8ececa4'
             ];
             $req = new Request('POST', $cardPaymentUrl, $header, json_encode($body));
             $response = $this->httpAdapter->sendRequest($req);
@@ -94,7 +95,7 @@ class EcobankProvider extends AbstractProviderRequest{
     }
 
     public function isRedirect(){
-        return array_key_exists('response_content', $this->responseData);
+        return array_key_exists('response_content', $this->responseData);//TODO. This is insuffient to determine if there's a redirect url or not. Check that the content type is a web link before confirming
     }
 
     public function getRedirectUrl(){

@@ -153,7 +153,7 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = site_url('gateway/callback').'/'.$this->encryption->encrypt($payment['payment_transaction_id']);
+		$this->gatewayConfig['callback_url'] = 'https://webhook.site/9310548d-e30a-47b1-a2cd-9bf065ca9a92';site_url('gateway/callback').'/'.$this->encryption->encrypt($payment['payment_transaction_id']);
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
