@@ -58,8 +58,8 @@ class Gateway extends RestController {
 	}
 
 	public function index_get(){
-		//redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
-		redirect('http://google.com', 'location', 301);
+		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
+		//redirect('http://google.com', 'location', 301);
 		/* $momoProvider = new MobilemoneyProvider($this->gatewayConfig);
 		$userData = $momoProvider->sandboxUser($this->gatewayConfig); //get api user
 		if($userData['status'] == 201){ //get api key
@@ -92,8 +92,8 @@ class Gateway extends RestController {
 	}
 	
 	public function index_post(){
-		//redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
-		redirect('http://google.com', 'location', 301);
+		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
+		//redirect('http://google.com', 'location', 301);
 	}
 
 	/**
