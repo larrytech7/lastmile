@@ -34,6 +34,7 @@ class Gateway extends RestController {
 		'orange-consumer-secret' => 'IVUaxQ4zaOZz0rIOhJ43fviPNZoa',//'MYEASYLIGTHPREPROD2020', //orangemo
 		'userId' => 'iamaunifieddev103', //ecobank
 		'password' => '$2a$10$Wmame.Lh1FJDCB4JJIxtx.3SZT0dP2XlQWgj9Q5UAGcDLpB0yRYCC', //ecobank
+		'ecobank-api-key' => '0C/5F7QHdMv40uVGaTbt5nXdJOxi105k2LN9goPRqTUrwZrdYOYbvC0sJz7G0iT9', //ecobank
 		'callback_url' => '', //general
 		'mode' => 'test' //general
 	];
@@ -57,7 +58,8 @@ class Gateway extends RestController {
 	}
 
 	public function index_get(){
-		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
+		//redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
+		redirect('http://google.com', 'location', 301);
 		/* $momoProvider = new MobilemoneyProvider($this->gatewayConfig);
 		$userData = $momoProvider->sandboxUser($this->gatewayConfig); //get api user
 		if($userData['status'] == 201){ //get api key
@@ -90,7 +92,8 @@ class Gateway extends RestController {
 	}
 	
 	public function index_post(){
-		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 302);
+		//redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
+		redirect('http://google.com', 'location', 301);
 	}
 
 	/**

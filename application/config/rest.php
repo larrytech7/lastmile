@@ -571,7 +571,11 @@ $config['allowed_cors_headers'] = [
   'X-Requested-With',
   'Content-Type',
   'Accept',
+  'X-API-KEY',
   'Access-Control-Request-Method',
+  'Access-Control-Allow-Headers',
+  'Access-Control-Allow-Origin',
+  'Access-Control-Allow-Credentials',
 ];
 
 /*
@@ -634,4 +638,9 @@ $config['allowed_cors_origins'] = [];
 | http://docs.sencha.com/extjs/6.5.2/classic/Ext.data.proxy.Rest.html#cfg-withCredentials
 |
 */
-$config['forced_cors_headers'] = [];
+$config['forced_cors_headers'] = [
+  'Access-Control-Allow-Credentials' => 'true',
+  'Access-Control-Allow-Origin' => 'true',
+  'Access-Control-Request-Method' => 'true',
+  'Access-Control-Allow-Headers' => 'true',
+];
