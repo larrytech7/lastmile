@@ -174,7 +174,7 @@ class Gateway extends RestController {
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
 		if(array_key_exists('transaction_status', $response)){
-			redirect('http://localhost:4200/#/hostedPayment/payments/success'. '?' . http_build_query($response));
+			redirect('https://sevengps.github.io/sevenpay/hostedPayment/payments/success'. '?' . http_build_query($response));
 		}else{ //response has error
 			redirect('http://localhost:4200/#/hostedPayment/payments/error/');
 		}
