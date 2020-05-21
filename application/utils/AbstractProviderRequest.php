@@ -24,4 +24,8 @@ abstract class AbstractProviderRequest {
     
     public abstract function getRedirectUrl();
 
+    public function setConfigs($config){
+        $this->configs = $config;
+    }
+
 }

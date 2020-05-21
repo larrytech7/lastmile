@@ -15,11 +15,11 @@ class Gateway extends RestController {
 	protected $httpAdapter;
 
 	protected $paymentProviders = [
-		'MTNMOMO' => MobilemoneyProvider::class,
-		'ORANGEMO' => OrangemoneyProvider::class,
-		'ECOBANK' => EcobankProvider::class,
-		'YUP' => '',
-		'EU' => '',
+		'mtnmomo' => MobilemoneyProvider::class,
+		'orange' => OrangemoneyProvider::class,
+		'ecobank' => EcobankProvider::class,
+		'yup' => '',
+		'eu' => '',
 	];
 
 	//TODO : Setup gateway configs here for all payment providers
@@ -28,10 +28,10 @@ class Gateway extends RestController {
 		'x-target-environment' => 'mtncameroon', //momo
 		'api_key' => '', //momo
 		'api_user' => '', //momo
-		'orange-api-user' => 'Ndeme',//'MYEASYLIGTHPREPROD', //orangemo
-		'orange-api-password' => 'Minipol88888',//'MYEASYLIGTHPREPROD2020', //orangemo
-		'orange-consumer-key' => 'YsxQPIh775FPVM97OB7g9JLj3EMa',//'MYEASYLIGTHPREPROD2020', //orangemo
-		'orange-consumer-secret' => 'IVUaxQ4zaOZz0rIOhJ43fviPNZoa',//'MYEASYLIGTHPREPROD2020', //orangemo
+		'orange-api-user' => 'MYEASYLIGTHPREPROD', //orangemo
+		'orange-api-password' => 'MYEASYLIGTHPREPROD2020', //orangemo
+		'orange-consumer-key' => '4Qghk791gWiyWsYxJrwYAAsSTPsa',//orangemo
+		'orange-consumer-secret' => 'I8f7pMZMahI2d2zvdkUjum0nu3Ua',//orangemo
 		'userId' => 'iamaunifieddev103', //ecobank
 		'password' => '$2a$10$Wmame.Lh1FJDCB4JJIxtx.3SZT0dP2XlQWgj9Q5UAGcDLpB0yRYCC', //ecobank
 		'ecobank-api-key' => '0C/5F7QHdMv40uVGaTbt5nXdJOxi105k2LN9goPRqTUrwZrdYOYbvC0sJz7G0iT9', //ecobank
@@ -47,6 +47,7 @@ class Gateway extends RestController {
 		$ci_instance->load->model('providers');
 		$ci_instance->load->model('payments');
 		$ci_instance->load->model('transactions');
+		$ci_instance->load->model('apikey');
 		//initialize encryption library
 		$ci_instance->encryption->initialize([
 			'cipher' => 'aes-256'
@@ -58,42 +59,13 @@ class Gateway extends RestController {
 	}
 
 	public function index_get(){
-		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
+		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 302);
 		//redirect('http://google.com', 'location', 301);
-		/* $momoProvider = new MobilemoneyProvider($this->gatewayConfig);
-		$userData = $momoProvider->sandboxUser($this->gatewayConfig); //get api user
-		if($userData['status'] == 201){ //get api key
-			$user = $userData['data']['user'];
-			$apiKeyData = $momoProvider->sandboxApi($this->gatewayConfig, $user);
-			if($apiKeyData['status'] == 201){ //get token
-				$apiKey = $apiKeyData['data']['api-key'];
-				$this->gatewayConfig['api_user'] = $user;
-				$this->gatewayConfig['api_key'] = $apiKey;
-				$tokenData = $momoProvider->sandboxToken($this->gatewayConfig);
-				if($tokenData['status'] == 200 ){ //make payment request
-					$token = $tokenData['data']['token'];
-					$this->gatewayConfig['token'] = $token;
-					$payload = [
-						'amount' => '100',
-						'currency' => 'EUR',
-						'externalId' => '3324234',
-						'payer' => [
-							'partyIdType' => "MSISDN",
-							'partyId' => "678656032",
-						],
-						'payerMessage' => 'ok',
-						'payeeNote' => 'ok',
-					];
-					$paymentData = $momoProvider->sandboxPay($this->gatewayConfig, $payload);
-					var_dump($paymentData);
-				}
-			}
-		} */
 	}
 	
 	public function index_post(){
-		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 301);
-		//redirect('http://google.com', 'location', 301);
+		redirect('http://localhost:4200/#/hostedPayment/payments', 'location', 301);
+		//redirect('http://google.com', 'location', 301);	
 	}
 
 	/**
@@ -153,19 +125,18 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = 'https://webhook.site/9310548d-e30a-47b1-a2cd-9bf065ca9a92';site_url('gateway/callback').'/'.$this->encryption->encrypt($payment['payment_transaction_id']);
+		$this->gatewayConfig['callback_url'] = 'http://192.168.100.10/payments/gateway/callback/'. $gateway . '/'.(base64_encode($payment['payment_transaction_id']));
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
-		/* $this->response([
-			'status' => $response->getStatusCode(),
-		], 
-		401); */
+		//die(var_dump($response));
+		//return REST response
 		$this->response([
 			'status' => $response['status'],
 			'message' => $response['message'],
 			'isRedirect' => $providerGateway->isRedirect(),
 			'redirect_url' => $providerGateway->getRedirectUrl(),
+			'secure_hash' => $response['secure_hash']
 		], 
 		$response['status'] ?? 401);
 	}
@@ -179,24 +150,58 @@ class Gateway extends RestController {
 	 * @param string $id ID of the transaction of the payment initiated
 	 * @return array response data
 	 */
-	public function callback_post($id){
-		
+	public function callback_get($gateway, $id){
+		//TODO : We need to parse calback  requests from payment providers
 		$request_data = file_get_contents("php://input");
-		log_message('error', $request_data . ' ID '.$id);
-		$transaction_id = $this->encryption->decrypt($id);
-		$isCallbackSettled = false;
-		$message = '';
+		$transaction_id = base64_decode($id); //$this->encryption->decrypt(($id));
+		log_message('error', $request_data . ' ID '.$transaction_id);
 		$payment_status = ''; //TODO
+		//process callback
+		switch($gateway){
+			case 'ecobank': //process visa callback
+				$payment_status = $this->get('vpc_Message') == 'Approved' ? 'SUCCESS' : strtoupper($this->get('vpc_Message'));
+				$gateway_transaction_id = $this->get('vpc_TransactionNo'); ///TODO may be needed later
+				log_message('error', 'Gateway transction id : ' . $gateway_transaction_id . ' Payment status : ' . $payment_status);
+				break;
+			case 'orange': //process orangemo callback
+
+				break;
+			case 'mtnmomo': //process momo callback
+
+				break;
+			case 'yup':
+				break;
+		}
+		$response = $this->processCallbackData($transaction_id, $payment_status);
+		if(array_key_exists('transaction_status', $response)){
+			redirect('http://localhost:4200/#/hostedPayment/payments/success'. '?' . http_build_query($response));
+		}else{ //response has error
+			redirect('http://localhost:4200/#/hostedPayment/payments/error/');
+		}
+		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
+		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');
+	}
+
+	/**
+	 * Process payment callbacks
+	 *
+	 * @param int $transaction_id
+	 * @param string $status
+	 * @return array Payment processing data to redirect to appropriate callback url
+	 */
+	private function processCallbackData($transaction_id, $status){
+		///callback
+		$callbackData = [];
 		//retrieve the payment
 		$payments = $this->payments->getWhere(['payment_transaction_id' => $transaction_id])->result_object();
 		if(count($payments) > 0){
 			//update payment
 			$payment = $payments[0];
 			$this->payments->update($payment->payment_id, [
-				'payment_status' => $payment_status
+				'payment_status' => $status
 			]);
 			//get transactions
-			$transactions = $this->transactions->getWhere(['ext_transaction_id' => $transaction_id])->result_object();
+			$transactions = $this->transactions->getWhere(['ext_transaction_id' => $transaction_id])->result_array();
 			foreach($transactions as &$tx){
 				$tx['amount'] = $tx['transaction_amount'];
 				$tx['bill_ref'] = $tx['transaction_id'];
@@ -206,27 +211,46 @@ class Gateway extends RestController {
 				'transactions' => $transactions,
 				'transaction_id' => $transaction_id,
 				'transaction_gateway' => $payment->provider_name,
-				'transaction_amount' => $payment->provider_amount,
-				'transaction_status' => $payment_status,
+				'transaction_amount' => $payment->payment_amount,
+				'transaction_status' => $status,
 				'message' => '',
 			];
-			$req = new Request('POST', $payment->payment_callback, [], json_encode($data));
+			/* $req = new Request('POST', $payment->payment_callback, [], json_encode($data));
 			$response = $this->httpAdapter->sendRequest($req);
-			log_message('error', $response->getBody()->getContents());
+			log_message('error', $response->getBody()->getContents()); */
+			$callbackData = [
+				'transaction_id' => $transaction_id,
+				'transaction_gateway' => $payment->provider_name,
+				'transaction_amount' => $payment->payment_amount,
+				'transaction_status' => in_array($status, ['success', 'SUCCESS', 'OK', 'ok']) ? 'SUCCESS' : $status,
+				'message' => 'Payment completed for transaction : '.$transaction_id,
+				'callback' => $payment->payment_callback. '?' . http_build_query($data)
+			];	
 			//TODO : post payment to Eneopay
-
-			$message = 'Payment completed for transaction : '.$transaction_id;
 		}else{
 			$message = 'Payment Transaction not found for '.$transaction_id;
+			$callbackData = [
+				'message' => $message
+			];
 		}
+		return $callbackData;
+	}
 
+	public function getApiKey_get(){
+		$api_key = [
+			'key' => str_rot13(sha1(time(), true)),
+			'user_id' => (time()),
+			'level' => 1,
+		];
+		$inserted = $this->apikey->insert($api_key);
+		$status = $inserted ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST;
 		$this->response([
-			'status' => $isCallbackSettled,
-			'message' => $message
-		], $isCallbackSettled ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST);
-
-		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
-		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');
+			'status' => $status,
+			'message' => $status == 200 ? 'Created!' : 'Error request parameters invalid',
+			'data' => [
+				'api_key' => $api_key['key']
+			]
+		], $status);
 	}
 
 	/**

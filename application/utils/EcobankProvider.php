@@ -17,7 +17,7 @@ class EcobankProvider extends AbstractProviderRequest{
     protected $responseData;
     protected $config = [];
 
-    public function __construct($config = ''){
+    public function __construct($config = []){
         $this->httpAdapter = new GuzzleAdapter(null);
         $this->responseData = [];
         $this->config = $config;
@@ -31,8 +31,8 @@ class EcobankProvider extends AbstractProviderRequest{
             'Accept' => "application/json"
 		];
         $body = [
-            "userId" => $this->config['userId'] ?? '',
-            "password" => $this->config['password'] ?? ''
+            "userId" => trim(preg_replace('/\s+/', '', $this->config['userId'])),
+            "password" => trim(preg_replace('/\s+/', '',$this->config['password']))
         ];
         $req = new Request('POST', $auth_url, $header, json_encode($body));
 		return $this->httpAdapter->sendRequest($req);
@@ -42,7 +42,7 @@ class EcobankProvider extends AbstractProviderRequest{
         $cardPaymentUrl = $this->baseUrl.'merchant/card';
         $authResponse = $this->authorize($data);
         $authData = json_decode($authResponse->getBody()->getContents(), true);
-        log_message('error', 'token result'.$authResponse->getBody()->getContents());
+        //log_message('error', 'Ecobank token result '.$authData['token']);
 
         if($authResponse->getStatusCode() == 200 ){
             $header = [
@@ -52,31 +52,35 @@ class EcobankProvider extends AbstractProviderRequest{
                 'Accept' => "application/json"
             ];
             //TODO : This configuration needs to be more dynamic
+            $paymentDetails = [
+                'requestId' => '4466',//time(),
+                'productCode' => 'GMT112',//"ENP".random_int(1,1000),
+                'amount' => "50035",//$data['transaction_amount'],
+                'currency' => 'GBP',//$data['currency'] ?? 'CFA',
+                'locale' => 'en_AU',
+                'orderInfo' => '255s353',//random_string(),
+                'returnUrl' => $this->config['callback_url'] ?? ''
+            ];
+            $merchantDetails = [
+                'accessCode' => '79742570',//'2D726804',
+                'merchantID' => 'ETZ001',//'ECMT0001',
+                'secureSecret' => 'sdsffd',//'ENEO@ADMIN1',
+            ];
+            $secureHash = $this->getSecureHash(array_merge($paymentDetails, $merchantDetails), $this->config['ecobank-api-key']);
             $body = [
-                "paymentDetails" => [
-                    'requestID' => '4466',//time(),
-                    'productCode' => 'GMT112',//"ENP".random_int(1,1000),
-                    'amount' => "50035",//$data['transaction_amount'],
-                    'currency' => 'GBP',//$data['currency'] ?? 'CFA',
-                    'locale' => 'en_AU',
-                    'orderInfo' => '255s',//random_string(),
-                    'returnUrl' => $this->config['callback_url'] ?? '',
-                ],
-                "merchantDetails" => [
-                    'accessCode' => '79742570',//'2D726804',
-                    'merchantID' => 'ETZ001',//'ECMT0001',
-                    'secureSecret' => 'sdsffd',//'ENEO@ADMIN1',
-                ],
-                "secureHash" => '85dc50e24f6f36850f48390be3516c518acdc427c5c5113334c1c3f0ba122cdd37b06a10b82f7ddcbdade8d8ab92165e25ea4566f6f8a7e50f3c9609d8ececa4'
+                "paymentDetails" => $paymentDetails,
+                "merchantDetails" => $merchantDetails,
+                "secureHash" => '7f137705f4caa39dd691e771403430dd23d27aa53cefcb97217927312e77847bca6b8764f487ce5d1f6520fd7227e4d4c470c5d1e7455822c8ee95b10a0e9855'
             ];
             $req = new Request('POST', $cardPaymentUrl, $header, json_encode($body));
             $response = $this->httpAdapter->sendRequest($req);
             
             $data = json_decode($response->getBody(), true);
-            $this->responseData =  [
+            $this->responseData = [
                 'status' => $response->getStatusCode(),
                 'message' => $data['response_message'],
-                'response_content' => $data['response_content'] 
+                'response_content' => $data['response_content'],
+                'secure_hash' => $secureHash 
             ];
             return $this->responseData;
 
@@ -102,7 +106,14 @@ class EcobankProvider extends AbstractProviderRequest{
         return array_key_exists('response_content', $this->responseData) ? $this->responseData['response_content'] : "";
     }
 
-    private function getSecureHash($message){
+    private function getSecureHash($payload, $lab_key){
+
+        $message = '' ;
+        foreach($payload as $key => $val){
+            $message .= $val;
+        }
+        $message .= $lab_key;
+
         return hash("sha512", $message);
     }
 }
