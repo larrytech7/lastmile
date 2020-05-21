@@ -176,7 +176,7 @@ class Gateway extends RestController {
 		if(array_key_exists('transaction_status', $response)){
 			redirect('https://sevengps.github.io/sevenpay/hostedPayment/payments/success'. '?' . http_build_query($response));
 		}else{ //response has error
-			redirect('http://localhost:4200/#/hostedPayment/payments/error/');
+			redirect('https://sevengps.github.io/sevenpay/hostedPayment/payments/error');
 		}
 		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
 		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');
