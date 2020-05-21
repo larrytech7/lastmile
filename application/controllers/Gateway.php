@@ -125,7 +125,7 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = 'http://192.168.100.10/payments/gateway/callback/'. $gateway . '/'.(base64_encode($payment['payment_transaction_id']));
+		$this->gatewayConfig['callback_url'] = 'http://192.168.100.10/payments/gateway/callback/'. $gateway . '/'.(base64_encode($transaction_id));
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
@@ -155,7 +155,7 @@ class Gateway extends RestController {
 		$request_data = file_get_contents("php://input");
 		$transaction_id = base64_decode($id); //$this->encryption->decrypt(($id));
 		log_message('error', $request_data . ' ID '.$transaction_id);
-		$payment_status = ''; //TODO
+		$payment_status = '';
 		//process callback
 		switch($gateway){
 			case 'ecobank': //process visa callback
@@ -218,13 +218,14 @@ class Gateway extends RestController {
 			/* $req = new Request('POST', $payment->payment_callback, [], json_encode($data));
 			$response = $this->httpAdapter->sendRequest($req);
 			log_message('error', $response->getBody()->getContents()); */
+			log_message('error', 'Callback '.$payment->payment_callback); 
 			$callbackData = [
 				'transaction_id' => $transaction_id,
 				'transaction_gateway' => $payment->provider_name,
 				'transaction_amount' => $payment->payment_amount,
 				'transaction_status' => in_array($status, ['success', 'SUCCESS', 'OK', 'ok']) ? 'SUCCESS' : $status,
 				'message' => 'Payment completed for transaction : '.$transaction_id,
-				'callback' => $payment->payment_callback. '?' . http_build_query($data)
+				'callback' => $payment->payment_callback//. '?' . http_build_query($data)
 			];	
 			//TODO : post payment to Eneopay
 		}else{
