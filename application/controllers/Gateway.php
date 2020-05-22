@@ -125,7 +125,7 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = 'http://gateway-test.eneoapps.com/gateway/gateway/callback/'. $gateway . '/'.(base64_encode(($transaction_id)));
+		$this->gatewayConfig['callback_url'] = 'http://gateway-test.eneoapps.com/gateway/callback/'. $gateway . '/'.(base64_encode(($transaction_id)));
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
@@ -232,9 +232,9 @@ class Gateway extends RestController {
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
 		if(array_key_exists('transaction_status', $response)){
-			redirect('http://52.174.179.186/#/hostedPayment/payments/success'. '?' . http_build_query($response));
+			redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments/success'. '?' . http_build_query($response));
 		}else{ //response has error
-			redirect(' http://52.174.179.186/#/hostedPayment/payments/error');
+			redirect(' http://52.174.179.186/payments-web/#/hostedPayment/payments/error');
 		}
 		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
 		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');
