@@ -15,7 +15,7 @@ class MobilemoneyProvider extends AbstractProviderRequest{
     protected $httpAdapter;
     protected $endpoint = [
         'live' => 'https://ericssonbasicapi1.azure-api.net/',
-        'test' => 'https://sandbox.momodeveloper.mtn.com/',
+        'test' => 'https://ericssonbasicapi1.azure-api.net/'
     ];
     protected $baseUrl = "";
     protected $responseData;
@@ -35,7 +35,7 @@ class MobilemoneyProvider extends AbstractProviderRequest{
      * @return HttpResponse object
      */
     public function authorize(array $data = []){
-        $auth_url = "https://proxy.momoapi.mtn.com/collection/"."token";
+        $auth_url = $this->baseUrl . "collection/token";
         $header = [
             'Authorization' => 'Basic '. base64_encode($this->configs['api_user'].':'.$this->configs['api_key']),
             'Content-Type' => "application/json",
@@ -58,7 +58,7 @@ class MobilemoneyProvider extends AbstractProviderRequest{
                 'Content-Type' => "application/json",
                 'Ocp-Apim-Subscription-Key' => $this->configs['subscription-key']
             ];
-            $url = "https://proxy.momoapi.mtn.com/collection/v1_0/" . "requesttopay";
+            $url = $this->baseUrl . "collection/v1_0/requesttopay";
             $payload = [
                 'amount' => $data['transaction_amount'] ?? '0',
                 'currency' => $data['currency'] ?? 'CFA',

@@ -231,7 +231,7 @@ class Gateway extends RestController {
 				break;
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
-		if(array_key_exists('transaction_status', $response)){
+		if(array_key_exists('transaction_status', $response) && in_array($response['transaction_status'], ['SUCCESS', 'PENDING'])){
 			redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments/success'. '?' . http_build_query($response));
 		}else{ //response has error
 			redirect(' http://52.174.179.186/payments-web/#/hostedPayment/payments/error');
