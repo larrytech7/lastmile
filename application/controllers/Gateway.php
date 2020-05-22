@@ -59,12 +59,12 @@ class Gateway extends RestController {
 	}
 
 	public function index_get(){
-		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 302);
+		redirect('http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments', 'location', 302);
 		//redirect('http://google.com', 'location', 301);
 	}
 	
 	public function index_post(){
-		redirect('http://localhost:4200/#/hostedPayment/payments', 'location', 301);
+		redirect('http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments', 'location', 301);
 		//redirect('http://google.com', 'location', 301);	
 	}
 
@@ -125,20 +125,78 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = 'http://192.168.100.10/payments/gateway/callback/'. $gateway . '/'.(base64_encode($transaction_id));
+		$this->gatewayConfig['callback_url'] = 'http://gateway-test.eneoapps.come/gateway/gateway/callback/'. $gateway . '/'.(base64_encode(($transaction_id)));
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
+		log_message('error', 'encrypted ID request '.base64_encode(($transaction_id)));
 		//die(var_dump($response));
 		//return REST response
 		$this->response([
 			'status' => $response['status'],
 			'message' => $response['message'],
+			'data' => $response['data'] ?? [],
+			'error' => $response['error'] ?? '',
 			'isRedirect' => $providerGateway->isRedirect(),
 			'redirect_url' => $providerGateway->getRedirectUrl(),
 			'secure_hash' => $response['secure_hash']
 		], 
 		$response['status'] ?? 401);
+	}
+
+	/**
+	 * Check for the payment status of the Orange payment request
+	 *
+	 * @param string $transaction_id
+	 * @return void
+	 */
+	public function paymentstatus_get($transaction_id ){
+		$paytoken = $this->get('paytoken');
+		$auth_token = $this->get('auth-token');
+		$x_token = $this->get('x-token');
+
+		$headers[] = 'Authorization: ' . base64_decode($auth_token);
+        $headers[] = 'X-AUTH-TOKEN: ' . base64_decode($x_token);
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, 'https://apiw.orange.cm/'. "omcoreapis/1.0.2/mp/paymentstatus/" . base64_decode($paytoken));
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		$response = curl_exec($ch);
+		$err = curl_error($ch);
+		$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+
+		$result = json_decode($response, true);
+		die(var_dump($result));
+
+		if($err){
+			//return response
+			$this->response([
+				'status' => $code,	
+				'message' => $result['message']
+			], $code);
+		}else{
+			
+			$status = $result['data']['status'];
+			$this->payments->updateWhere([
+				'payment_transaction_id' => $transaction_id
+			], [
+				'payment_status' => strtoupper($status)
+			]);
+			//return response
+			$this->response([
+				'status' => $status,
+				'message' => $result['data']['confirmtxnmessage'],
+				'data' => [
+					'transaction_id' => $transaction_id,
+					'transaction_amount' => $result['data']['amount'],
+					'payment_transaction_id' => $result['data']['txnid'],
+					'callback_url' => $result['data']['notifyUrl'],
+				]
+			], $code);
+
+		}
 	}
 
 	public function auth_get(){
@@ -153,8 +211,8 @@ class Gateway extends RestController {
 	public function callback_get($gateway, $id){
 		//TODO : We need to parse calback  requests from payment providers
 		$request_data = file_get_contents("php://input");
-		$transaction_id = base64_decode($id); //$this->encryption->decrypt(($id));
-		log_message('error', $request_data . ' ID '.$transaction_id);
+		$transaction_id = base64_decode($id);// ($this->encryption->decrypt(($id)));
+		log_message('error', $request_data . 'encrypted ID Response : ' . $id . ' decrypted ID '.$transaction_id);
 		$payment_status = '';
 		//process callback
 		switch($gateway){
@@ -174,9 +232,9 @@ class Gateway extends RestController {
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
 		if(array_key_exists('transaction_status', $response)){
-			redirect('https://sevengps.github.io/sevenpay/hostedPayment/payments/success'. '?' . http_build_query($response));
+			redirect('http://52.174.179.186/#/hostedPayment/payments/success'. '?' . http_build_query($response));
 		}else{ //response has error
-			redirect('https://sevengps.github.io/sevenpay/hostedPayment/payments/error');
+			redirect(' http://52.174.179.186/#/hostedPayment/payments/error');
 		}
 		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
 		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');
@@ -210,7 +268,7 @@ class Gateway extends RestController {
 			$data = [
 				'transactions' => $transactions,
 				'transaction_id' => $transaction_id,
-				'transaction_gateway' => $payment->provider_name,
+				'transaction_gateway' => $payment->payment_provider,
 				'transaction_amount' => $payment->payment_amount,
 				'transaction_status' => $status,
 				'message' => '',
