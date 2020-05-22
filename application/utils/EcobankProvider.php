@@ -55,7 +55,7 @@ class EcobankProvider extends AbstractProviderRequest{
             $paymentDetails = [
                 'requestId' => '4466',//time(),
                 'productCode' => 'GMT112',//"ENP".random_int(1,1000),
-                'amount' => "50035",//$data['transaction_amount'],
+                'amount' => $data['transaction_amount'],
                 'currency' => 'GBP',//$data['currency'] ?? 'CFA',
                 'locale' => 'en_AU',
                 'orderInfo' => '255s353',//random_string(),

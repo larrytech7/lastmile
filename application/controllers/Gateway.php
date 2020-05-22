@@ -125,10 +125,11 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = 'http://192.168.100.10/payments/gateway/callback/'. $gateway . '/'.($this->encryption->encrypt(base64_encode($transaction_id)));
+		$this->gatewayConfig['callback_url'] = 'http://gateway-test.eneoapps.come/gateway/gateway/callback/'. $gateway . '/'.(base64_encode(($transaction_id)));
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
+		log_message('error', 'encrypted ID request '.base64_encode(($transaction_id)));
 		//die(var_dump($response));
 		//return REST response
 		$this->response([
@@ -210,8 +211,8 @@ class Gateway extends RestController {
 	public function callback_get($gateway, $id){
 		//TODO : We need to parse calback  requests from payment providers
 		$request_data = file_get_contents("php://input");
-		$transaction_id = base64_decode($this->encryption->decrypt(($id)));
-		log_message('error', $request_data . 'encrypted ID : ' . $id . ' decrypted ID '.$transaction_id);
+		$transaction_id = base64_decode($id);// ($this->encryption->decrypt(($id)));
+		log_message('error', $request_data . 'encrypted ID Response : ' . $id . ' decrypted ID '.$transaction_id);
 		$payment_status = '';
 		//process callback
 		switch($gateway){
@@ -231,9 +232,9 @@ class Gateway extends RestController {
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
 		if(array_key_exists('transaction_status', $response)){
-			redirect('http://localhost:4200/#/hostedPayment/payments/success'. '?' . http_build_query($response));
+			redirect('http://52.174.179.186/#/hostedPayment/payments/success'. '?' . http_build_query($response));
 		}else{ //response has error
-			redirect(' http://localhost:4200/#/hostedPayment/payments/error', 'location');
+			redirect(' http://52.174.179.186/#/hostedPayment/payments/error');
 		}
 		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
 		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');
