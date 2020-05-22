@@ -117,7 +117,7 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                     //Cash out request
                 $payload = [
                     'amount' => $data['transaction_amount'] ?? 1,
-                    'notifyUrl' => $this->configs['callback_url'],
+                    'notifUrl' => $this->configs['callback_url'],
                     'channelUserMsisdn' => '694849648',
                     'subscriberMsisdn' => $data['phone_number'],
                     'pin' => '2222',
@@ -131,9 +131,9 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                 curl_setopt($ch, CURLOPT_URL, 'https://apiw.orange.cm/'. "omcoreapis/1.0.2/mp/pay");
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+//                curl_setopt($ch, CURLINFO_HEADER_OUT, true);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_POST, true);
+//                curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
                 $response = curl_exec($ch);
                 $err = curl_error($ch);
@@ -142,7 +142,7 @@ class OrangemoneyProvider extends AbstractProviderRequest{
 
                 if($err){
                     $this->responseData =  [
-                        'status' => $response->getStatusCode(),
+                        'status' => $code,
                         'message' => $data['message']
                     ];
                     return $this->responseData;
@@ -155,15 +155,6 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                     ];
                     return $this->responseData;
                 }
-                /* $req = new Request('POST', $this->baseUrl . "omcoreapis/1.0.2/mp/pay", $header, json_encode($payload));
-                $response = $this->httpAdapter->sendRequest($req);
-                    
-                $data = json_decode($response->getBody(), true);
-                $this->responseData =  [
-                    'status' => $response->getStatusCode(),
-                    'message' => $data['message']
-                ];
-                return $this->responseData; */
             }
             
         }else{

@@ -129,7 +129,7 @@ class Gateway extends RestController {
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
-		//die(var_dump($response));
+		die(var_dump($response));
 		//return REST response
 		$this->response([
 			'status' => $response['status'],
