@@ -59,12 +59,12 @@ class Gateway extends RestController {
 	}
 
 	public function index_get(){
-		redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments', 'location', 302);
+		redirect('http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments', 'location', 302);
 		//redirect('http://google.com', 'location', 301);
 	}
 	
 	public function index_post(){
-		redirect('http://localhost:4200/#/hostedPayment/payments', 'location', 301);
+		redirect('http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments', 'location', 301);
 		//redirect('http://google.com', 'location', 301);	
 	}
 
