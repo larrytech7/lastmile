@@ -125,7 +125,7 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = 'http://gateway-test.eneoapps.come/gateway/gateway/callback/'. $gateway . '/'.(base64_encode(($transaction_id)));
+		$this->gatewayConfig['callback_url'] = 'http://gateway-test.eneoapps.com/gateway/gateway/callback/'. $gateway . '/'.(base64_encode(($transaction_id)));
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
