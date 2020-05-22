@@ -140,6 +140,14 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                 $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 curl_close($ch);
 
+                //initiate user payment prompt
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, 'https://apiw.orange.cm/'. "omcoreapis/1.0.2/mp/push/".$payToken);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_close($ch);
+
                 if($err){
                     $this->responseData =  [
                         'status' => $code,
@@ -149,9 +157,10 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                 }else{
                     $result = json_decode($response, true);
                     $this->responseData =  [
-                        'status' => $code,
-                        'message' => $result['message'],
-                        'data' => $result['data']
+                        'status' => $result['data']['status'],
+                        'message' => $result['message'] . '. Enter your PIN on your mobile to confirm.',
+                        'error' => $result['data']['status'] == 'PENDING' ? '' : $result['message'],
+                        'data' => ['message' => $result['message'], 'init' =>$result['data']['inittxnmessage']]
                     ];
                     return $this->responseData;
                 }
@@ -178,91 +187,4 @@ class OrangemoneyProvider extends AbstractProviderRequest{
         return array_key_exists('response_content', $this->responseData) ? $this->responseData['response_content'] : "";
     }
 
-    private function generateUuidV4(){
-        // v4 generate uuid
-        if (function_exists('com_create_guid') === true)
-			return trim(com_create_guid(), '{}');
-	
-			$data = openssl_random_pseudo_bytes(16);
-			$data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
-			$data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-			return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
-    }
-
-    public function sandboxUser($configs){
-        $url = "https://ericssonbasicapi1.azure-api.net/provisioning/v1_0/apiuser";
-        $header = [
-            'X-Reference-Id' => $this->generateUuidV4(),
-            'Content-Type' => "application/json",
-            'Ocp-Apim-Subscription-Key' => $configs['subscription-key']
-		];
-        $body = [
-            "providerCallbackHost" => $configs['callback_url'] ?? '',
-        ];
-        $req = new Request('POST', $url, $header, json_encode($body));
-        $response = $this->httpAdapter->sendRequest($req);
-        return [
-            'status' => $response->getStatusCode(),
-            'message' => $response->getBody()->getContents(),
-            'data' => [
-                'user' => $response->getStatusCode() == 201 ? $header['X-Reference-Id'] : ''
-            ]
-        ];
-    }
-    
-    public function sandboxApi($configs, $user){
-        $url = "https://ericssonbasicapi1.azure-api.net/provisioning/v1_0/apiuser/".$user."/apikey";
-        $header = [
-            'Content-Type' => "application/json",
-            'Ocp-Apim-Subscription-Key' => $configs['subscription-key']
-		];
-        $req = new Request('POST', $url, $header);
-        $response = $this->httpAdapter->sendRequest($req);
-        $api = json_decode($response->getBody()->getContents(), true);
-        return [
-            'status' => $response->getStatusCode(),
-            'message' => $response->getBody()->getContents(),
-            'data' => [
-                'api-key' => $response->getStatusCode() == 201 ? $api['apiKey'] : ''
-            ]
-        ];
-    }
-
-    public function sandboxToken($configs){
-        $url = "https://ericssonbasicapi1.azure-api.net/token";
-        $header = [
-            'Authorization' => 'Basic '. base64_encode($configs['api_user'].':'.$configs['api_key']),
-            'Content-Type' => "application/json",
-            'Ocp-Apim-Subscription-Key' => $configs['subscription-key']
-		];
-        $req = new Request('POST', $url, $header);
-        $response = $this->httpAdapter->sendRequest($req);
-        $token = json_decode($response->getBody()->getContents(), true);
-        return [
-            'status' => $response->getStatusCode(),
-            'message' => $response->getBody()->getContents(),
-            'data' => [
-                'token' => $token['token']
-            ]
-        ];
-    }
-    
-    public function sandboxPay($configs, $body){
-        $url = "https://ericssonbasicapi1.azure-api.net/requesttopay";
-        $header = [
-            'Authorization' => 'Bearer '. $configs['token'],
-            'Content-Type' => "application/json",
-            'Ocp-Apim-Subscription-Key' => $configs['subscription-key']
-		];
-        $req = new Request('POST', $url, $header, json_encode($body));
-        $response = $this->httpAdapter->sendRequest($req);
-        $payment = json_decode($response->getBody()->getContents(), true);
-        return [
-            'status' => $response->getStatusCode(),
-            'message' => $response->getBody()->getContents(),
-            'data' => [
-                'payment' => $payment
-            ]
-        ];
-    }
 }
