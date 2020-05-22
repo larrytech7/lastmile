@@ -160,7 +160,15 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                         'status' => $result['data']['status'],
                         'message' => $result['message'] . '. Enter your PIN on your mobile to confirm.',
                         'error' => $result['data']['status'] == 'PENDING' ? '' : $result['message'],
-                        'data' => ['message' => $result['message'], 'init' =>$result['data']['inittxnmessage']]
+                        'data' => [
+                            'message' => $result['message'], 
+                            'init' =>$result['data']['inittxnmessage'], 
+                            'transaction_id' => base64_encode($data['transaction_id']),
+                            'paytoken' => base64_encode($payToken),
+                            'auth-token' => base64_encode($header['Authorization']),
+                            'x-token' => base64_encode($header['X-AUTH-TOKEN']),
+                            'redirect_url' =>$this->configs['callback_url'],
+                        ]
                     ];
                     return $this->responseData;
                 }

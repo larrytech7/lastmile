@@ -30,9 +30,9 @@ class Payments extends CI_Model{
     
     public function getWhere($where){
         return $this->db
-            ->select('provider_name, provider_short_tag, payment_id, payment_amount, payment_provider, payment_callback, payment_status')
+            ->select('payment_id, payment_amount, payment_provider, payment_callback, payment_status')
             ->from($this->table)
-            ->join('providers', 'providers.provider_short_tag = payments.payment_provider')
+            //->join('providers', 'providers.provider_short_tag = payments.payment_provider')
             ->where($where)
             ->where('payments.delete_time', NULL)
             ->get();
@@ -65,6 +65,15 @@ class Payments extends CI_Model{
             ->set($update)
             ->where('payment_id', $id)
             ->where('delete_time', NULL)
+            ->update($this->table);
+    }
+    
+    public function updateWhere($where, $set){
+        $update['update_time'] = date('Y-m-d H:i:s');
+
+        return $this->db
+            ->set($set)
+            ->where($where)
             ->update($this->table);
     }
 
