@@ -234,7 +234,7 @@ class Gateway extends RestController {
 		if(array_key_exists('transaction_status', $response) && in_array($response['transaction_status'], ['SUCCESS', 'PENDING'])){
 			redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments/success'. '?' . http_build_query($response));
 		}else{ //response has error
-			redirect(' http://52.174.179.186/payments-web/#/hostedPayment/payments/error');
+			redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments/error');
 		}
 		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
 		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');
