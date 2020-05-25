@@ -173,6 +173,7 @@ $config['auth_library_function'] = '';
            $config['auth_override_class_method']['payments']['index'] = 'none';
            $config['auth_override_class_method']['gateway']['callback'] = 'none';
            $config['auth_override_class_method']['gateway']['add'] = 'basic';
+           $config['auth_override_class_method']['gateway']['notify'] = 'white-list'; //secure by IP address
 /*
 |           $config['auth_override_class_method']['deals']['insert'] = 'digest';
 |           $config['auth_override_class_method']['accounts']['user'] = 'basic';
@@ -263,7 +264,7 @@ $config['rest_handle_exceptions'] = true;
 | 127.0.0.1 and 0.0.0.0 are allowed by default
 |
 */
-$config['rest_ip_whitelist'] = '';
+$config['rest_ip_whitelist'] = '192.168.100.28';
 
 /*
 |--------------------------------------------------------------------------

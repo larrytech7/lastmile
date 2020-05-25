@@ -22,6 +22,25 @@ class Gateway extends RestController {
 		'eu' => '',
 	];
 
+	protected $deploymentConfig = [
+		'app_callback_url' => [
+			'live' => 'http://gateway-test.eneoapps.com/gateway/callback/', //url to process payment response from providers
+			'test' => 'http://192.168.100.10/payments/gateway/callback/'
+		],
+		'app_auth_url' => [
+			'test' => 'http://192.168.100.10/payments/gateway', //url for incoming app requests to authenticate and be redirected
+			'live' => 'http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments'
+		],
+		'app_status_url' => [
+			'test' => 'http://192.168.100.94/payments-web/#/hostedPayment/payments/', //url for the front-end status update
+			'live' => 'http://52.174.179.186/payments-web/#/hostedPayment/payments/'
+		],
+		'app_notify_url' => [
+			'test' => 'http://192.168.100.10/payments/gateway/notify',
+			'live' => ''
+		],
+	];
+
 	//TODO : Setup gateway configs here for all payment providers
 	protected $gatewayConfig = [
 		'subscription-key' => 'e7f1a6f931c74b019add9b3d018e9350', //momo
@@ -52,6 +71,12 @@ class Gateway extends RestController {
 		$ci_instance->encryption->initialize([
 			'cipher' => 'aes-256'
 		]);
+		$environment = 'test';
+		$this->app_auth_url = $this->deploymentConfig['app_auth_url'][$environment]; //change according to the deployment environment
+		$this->app_callback_url = $this->deploymentConfig['app_callback_url'][$environment]; //change according to the deployment environment
+		$this->app_status_url = $this->deploymentConfig['app_status_url'][$environment]; //change according to the deployment environment
+		$this->app_notify_url = $this->deploymentConfig['app_notify_url'][$environment]; //change according to the deployment environment
+
 
 		//register events
 		//Events::register('eneopay_post_payments_event', [new TransactionEvent(), 'postPayments']);
@@ -59,13 +84,12 @@ class Gateway extends RestController {
 	}
 
 	public function index_get(){
-		redirect('http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments', 'location', 302);
-		//redirect('http://google.com', 'location', 301);
+		redirect($this->app_auth_url);
 	}
 	
 	public function index_post(){
-		redirect('http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments', 'location', 301);
-		//redirect('http://google.com', 'location', 301);	
+		redirect($this->app_auth_url);
+		//redirect('http://google.com');
 	}
 
 	/**
@@ -125,7 +149,7 @@ class Gateway extends RestController {
 			'payment_status' => 'PENDING'
 		];
 		$this->payments->insert($payment);
-		$this->gatewayConfig['callback_url'] = 'http://gateway-test.eneoapps.com/gateway/callback/'. $gateway . '/'.(base64_encode(($transaction_id)));
+		$this->gatewayConfig['callback_url'] = $this->app_callback_url . $gateway . '/'.(base64_encode(($transaction_id)));
 		
 		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
 		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
@@ -232,9 +256,9 @@ class Gateway extends RestController {
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
 		if(array_key_exists('transaction_status', $response) && in_array($response['transaction_status'], ['SUCCESS', 'PENDING'])){
-			redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments/success'. '?' . http_build_query($response));
+			redirect($this->app_status_url . 'success?' . http_build_query($response));
 		}else{ //response has error
-			redirect('http://52.174.179.186/payments-web/#/hostedPayment/payments/error');
+			redirect($this->app_status_url . 'error');
 		}
 		//$event_post = Events::trigger('eneopay_post_payments_event', $payments[0], 'array');
 		//$event_call = Events::trigger('payments_callback_event', $payments[0], 'array');
@@ -258,7 +282,7 @@ class Gateway extends RestController {
 			$this->payments->update($payment->payment_id, [
 				'payment_status' => $status
 			]);
-			//get transactions
+			//get transactions (bills)
 			$transactions = $this->transactions->getWhere(['ext_transaction_id' => $transaction_id])->result_array();
 			foreach($transactions as &$tx){
 				$tx['amount'] = $tx['transaction_amount'];
@@ -273,9 +297,6 @@ class Gateway extends RestController {
 				'transaction_status' => $status,
 				'message' => '',
 			];
-			/* $req = new Request('POST', $payment->payment_callback, [], json_encode($data));
-			$response = $this->httpAdapter->sendRequest($req);
-			log_message('error', $response->getBody()->getContents()); */
 			log_message('error', 'Callback '.$payment->payment_callback); 
 			$callbackData = [
 				'transaction_id' => $transaction_id,
@@ -286,13 +307,46 @@ class Gateway extends RestController {
 				'callback' => $payment->payment_callback//. '?' . http_build_query($data)
 			];	
 			//TODO : post payment to Eneopay
+			 
+			$req = new Request('POST', $payment->payment_callback, [], json_encode($data));
+			$response = $this->httpAdapter->sendRequest($req);
+			log_message('debug', $response->getBody()->getContents()); 
+			
 		}else{
 			$message = 'Payment Transaction not found for '.$transaction_id;
 			$callbackData = [
-				'message' => $message
+				'message' => $message,
+				'error' => $message
 			];
 		}
 		return $callbackData;
+	}
+
+	/**
+	 * Notification callback to receive payment transaction updates from Eneopay
+	 *
+	 * @return void
+	 */
+	public function notify_post(){
+		//get transaction details
+		$transaction_id = $this->post('transaction_id');
+		$transaction_status = $this->post('transaction_status');
+		$message = $this->post('message');
+		$ip = $this->input->ip_address();
+		$status = 0;
+		if(in_array($ip, ['192.168.100.28'])){
+			$updated = $this->transactions->updateWhere(['ext_transaction_id' => $transaction_id] , ['transaction_status' => strtoupper($transaction_status)]);
+			log_message('debug', sprintf('Transaction update state for %s = %s . \n Reason : %s. $api %s', $transaction_id, $updated, $message, $ip));	
+			$status = $updated ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST;
+		}else{
+			$status = RestController::HTTP_UNAUTHORIZED;
+		}
+		$this->response(
+			[
+				'message' => $status == 200 ? 'ok' : 'error'
+			],
+			$status
+		);
 	}
 
 	public function getApiKey_get(){

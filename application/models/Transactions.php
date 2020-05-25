@@ -34,6 +34,14 @@ class Transactions extends CI_Model{
         ->where('delete_time', NULL)
         ->get();
     }
+    
+    public function updateWhere($where, $set){
+        return $this->db
+            ->set($set)
+            ->where($where)
+            ->where('delete_time', NULL)
+            ->update($this->table);
+    }
 
     /**
      * insert provider data
