@@ -13,6 +13,7 @@ class Migration_Update_Transactions extends CI_Migration{
         //TODO: Add method to backup table data
         $this->create_transactions_table();
         $this->update_transactions_table();
+        $this->modify_transactions_table();
         //TODO : Add method to repopulate table
     }
 
@@ -67,6 +68,19 @@ class Migration_Update_Transactions extends CI_Migration{
             ]
         ];
         //add the fields
+        $this->dbforge->add_column('transactions', $fields);
+    }
+    
+    public function modify_transactions_table(){
+        $fields = [
+            'transaction_id' => [
+                'type' => 'varchar',
+                'constraint' => '255',
+                'null' => false,
+                'unique' => true
+            ]
+        ];
+        //modify the fields
         $this->dbforge->modify_column('transactions', $fields);
     }
 

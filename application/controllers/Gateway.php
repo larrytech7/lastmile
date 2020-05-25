@@ -32,7 +32,7 @@ class Gateway extends RestController {
 			'live' => 'http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments'
 		],
 		'app_status_url' => [
-			'test' => 'http://192.168.100.94/payments-web/#/hostedPayment/payments/', //url for the front-end status update
+			'test' => 'http://localhost:4200/payments-web/#/hostedPayment/payments/', //url for the front-end status update
 			'live' => 'http://52.174.179.186/payments-web/#/hostedPayment/payments/'
 		],
 		'app_notify_url' => [
@@ -77,7 +77,6 @@ class Gateway extends RestController {
 		$this->app_status_url = $this->deploymentConfig['app_status_url'][$environment]; //change according to the deployment environment
 		$this->app_notify_url = $this->deploymentConfig['app_notify_url'][$environment]; //change according to the deployment environment
 
-
 		//register events
 		//Events::register('eneopay_post_payments_event', [new TransactionEvent(), 'postPayments']);
 		//Events::register('payments_callback_event', [new TransactionEvent(), 'postCallback']);
@@ -102,19 +101,20 @@ class Gateway extends RestController {
 		$callback_url = $this->post('return_url');
 		$total = $this->post('total_amount');
 		$data = $this->post('transactions');
-		$transactions = [];
+		//log_message('debug', 'transaction id : '. $ext_transaction_id);
 		if($data)
 			foreach($data as $t){
-				array_push($transactions,[
+				//log_message('debug', 'bill ref : '. $t['bill_ref']);
+				$this->transactions->insert([
 					'transaction_id' => $t['bill_ref'],
 					'ext_transaction_id' => $ext_transaction_id,
 					'transaction_amount' => $t['amount'],
 				]);
 			}
-		if(count($transactions)>0)
+/* 		if(count($transactions)>0)
 		//save bills
 		$this->transactions->insertBulk($transactions);
-
+ */
 		$providers = $this->providers->getAll()->result_object();
 		$this->response([
 			'data' => $providers,
@@ -203,16 +203,14 @@ class Gateway extends RestController {
 		}else{
 			
 			$status = $result['data']['status'];
-			$this->payments->updateWhere([
-				'payment_transaction_id' => $transaction_id
-			], [
-				'payment_status' => strtoupper($status)
-			]);
+			//update transaction status
+			$processsedData = $this->processCallbackData($transaction_id, strtoupper($status));
 			//return response
 			$this->response([
 				'status' => $status,
 				'message' => $result['data']['confirmtxnmessage'],
 				'data' => [
+					'transactions' => $processsedData['transactions'] ?? '',
 					'transaction_id' => $transaction_id,
 					'transaction_amount' => $result['data']['amount'],
 					'payment_transaction_id' => $result['data']['txnid'],
@@ -284,10 +282,12 @@ class Gateway extends RestController {
 			]);
 			//get transactions (bills)
 			$transactions = $this->transactions->getWhere(['ext_transaction_id' => $transaction_id])->result_array();
+			$transaction_ids = '';
 			foreach($transactions as &$tx){
 				$tx['amount'] = $tx['transaction_amount'];
 				$tx['bill_ref'] = $tx['transaction_id'];
-			}
+				$transaction_ids .= $tx['bill_ref'] . ',';
+			} 
 			//post payment to caller callback url
 			$data = [
 				'transactions' => $transactions,
@@ -303,11 +303,11 @@ class Gateway extends RestController {
 				'transaction_gateway' => $payment->provider_name,
 				'transaction_amount' => $payment->payment_amount,
 				'transaction_status' => in_array($status, ['success', 'SUCCESS', 'OK', 'ok']) ? 'SUCCESS' : $status,
+				'transactions' => $transaction_ids,
 				'message' => 'Payment completed for transaction : '.$transaction_id,
 				'callback' => $payment->payment_callback//. '?' . http_build_query($data)
 			];	
 			//TODO : post payment to Eneopay
-			 
 			$req = new Request('POST', $payment->payment_callback, [], json_encode($data));
 			$response = $this->httpAdapter->sendRequest($req);
 			log_message('debug', $response->getBody()->getContents()); 
