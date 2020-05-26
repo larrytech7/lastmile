@@ -9,6 +9,7 @@ require_once("TransactionEvent.php");
 use GuzzleHttp\Psr7\Request;
 use chriskacerguis\RestServer\RestController;
 use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
+use GuzzleHttp\Client;
 
 class Gateway extends RestController {
 
@@ -25,19 +26,28 @@ class Gateway extends RestController {
 	protected $deploymentConfig = [
 		'app_callback_url' => [
 			'live' => 'http://gateway-test.eneoapps.com/gateway/callback/', //url to process payment response from providers
-			'test' => 'http://192.168.100.10/payments/gateway/callback/'
+			'test' => 'http://192.168.100.10/payments/gateway/callback/',
+			'dev' => 'http://192.168.100.10/payments/gateway/callback/'
 		],
 		'app_auth_url' => [
-			'test' => 'http://192.168.100.10/payments/gateway', //url for incoming app requests to authenticate and be redirected
+			'dev' => 'http://192.168.100.10/payments-web/#/hostedPayment/payments', //url for incoming app requests to authenticate and be redirected
+			'test' => 'http://192.168.100.10/payments-web/#/hostedPayment/payments', //url for incoming app requests to authenticate and be redirected
 			'live' => 'http://gateway-test.eneoapps.com/payments-web/#/hostedPayment/payments'
 		],
 		'app_status_url' => [
+			'dev' => 'http://localhost:4200/payments-web/#/hostedPayment/payments/', //url for the front-end status update
 			'test' => 'http://localhost:4200/payments-web/#/hostedPayment/payments/', //url for the front-end status update
 			'live' => 'http://52.174.179.186/payments-web/#/hostedPayment/payments/'
 		],
 		'app_notify_url' => [
+			'dev' => 'http://192.168.100.10/payments/gateway/notify',
 			'test' => 'http://192.168.100.10/payments/gateway/notify',
-			'live' => ''
+			'live' => 'http://192.168.100.10/gateway/gateway/notify'
+		],
+		'app_eneopay_url' => [
+			'dev' => 'http://192.168.100.17:8081/eneo-pay/',
+			'test' => 'http://192.168.100.17:8081/eneo-pay/',
+			'live' => 'http://eneopay-test.eneoapps.com:8080/eneo-pay/'
 		],
 	];
 
@@ -71,11 +81,12 @@ class Gateway extends RestController {
 		$ci_instance->encryption->initialize([
 			'cipher' => 'aes-256'
 		]);
-		$environment = 'test';
+		$environment = 'dev';
 		$this->app_auth_url = $this->deploymentConfig['app_auth_url'][$environment]; //change according to the deployment environment
 		$this->app_callback_url = $this->deploymentConfig['app_callback_url'][$environment]; //change according to the deployment environment
 		$this->app_status_url = $this->deploymentConfig['app_status_url'][$environment]; //change according to the deployment environment
 		$this->app_notify_url = $this->deploymentConfig['app_notify_url'][$environment]; //change according to the deployment environment
+		$this->app_eneopay_url = $this->deploymentConfig['app_eneopay_url'][$environment]; //change according to the deployment environment
 
 		//register events
 		//Events::register('eneopay_post_payments_event', [new TransactionEvent(), 'postPayments']);
@@ -100,11 +111,11 @@ class Gateway extends RestController {
 		$ext_transaction_id = $this->post('transaction_id');
 		$callback_url = $this->post('return_url');
 		$total = $this->post('total_amount');
-		$data = $this->post('transactions');
-		//log_message('debug', 'transaction id : '. $ext_transaction_id);
+		$data = $this->post('bills');
+		//log_message('debug', sprintf('total : %f bills : %d ', $total, count($data)) );
 		if($data)
 			foreach($data as $t){
-				//log_message('debug', 'bill ref : '. $t['bill_ref']);
+				log_message('debug', 'bill_ref : '. $t['bill_ref']);
 				$this->transactions->insert([
 					'transaction_id' => $t['bill_ref'],
 					'ext_transaction_id' => $ext_transaction_id,
@@ -174,51 +185,61 @@ class Gateway extends RestController {
 	 * @param string $transaction_id
 	 * @return void
 	 */
-	public function paymentstatus_get($transaction_id ){
-		$paytoken = $this->get('paytoken');
-		$auth_token = $this->get('auth-token');
-		$x_token = $this->get('x-token');
+	public function paymentstatus_get($gateway, $transaction_id ){
 
-		$headers[] = 'Authorization: ' . base64_decode($auth_token);
-        $headers[] = 'X-AUTH-TOKEN: ' . base64_decode($x_token);
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, 'https://apiw.orange.cm/'. "omcoreapis/1.0.2/mp/paymentstatus/" . base64_decode($paytoken));
-		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-		$response = curl_exec($ch);
-		$err = curl_error($ch);
-		$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
-
-		$result = json_decode($response, true);
-		die(var_dump($result));
-
-		if($err){
-			//return response
+		if($gateway == 'orange'){
+			$paytoken = $this->get('paytoken');
+			$auth_token = $this->get('auth-token');
+			$x_token = $this->get('x-token');
+	
+			$headers[] = 'Authorization: ' . base64_decode($auth_token);
+			$headers[] = 'X-AUTH-TOKEN: ' . base64_decode($x_token);
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, 'https://apiw.orange.cm/'. "omcoreapis/1.0.2/mp/paymentstatus/" . base64_decode($paytoken));
+			curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+			$response = curl_exec($ch);
+			$err = curl_error($ch);
+			$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			curl_close($ch);
+	
+			$result = json_decode($response, true);
+			die(var_dump($result));
+	
+			if($err){
+				//return response
+				$this->response([
+					'status' => $code,	
+					'message' => $result['message']
+				], $code);
+			}else{
+				
+				$status = $result['data']['status'];
+				//update transaction status
+				$processsedData = $this->processCallbackData($transaction_id, strtoupper($status));
+				//return response
+				$this->response([
+					'status' => $status,
+					'message' => $result['data']['confirmtxnmessage'],
+					'data' => [
+						'transactions' => $processsedData['transactions'] ?? '',
+						'transaction_id' => $transaction_id,
+						'transaction_amount' => $result['data']['amount'],
+						'payment_transaction_id' => $result['data']['txnid'],
+						'callback_url' => $result['data']['notifyUrl'],
+					]
+				], $code);
+	
+			}
+		}else if ($gateway == 'mtnmo'){
 			$this->response([
-				'status' => $code,	
-				'message' => $result['message']
-			], $code);
-		}else{
-			
-			$status = $result['data']['status'];
-			//update transaction status
-			$processsedData = $this->processCallbackData($transaction_id, strtoupper($status));
-			//return response
-			$this->response([
-				'status' => $status,
-				'message' => $result['data']['confirmtxnmessage'],
-				'data' => [
-					'transactions' => $processsedData['transactions'] ?? '',
-					'transaction_id' => $transaction_id,
-					'transaction_amount' => $result['data']['amount'],
-					'payment_transaction_id' => $result['data']['txnid'],
-					'callback_url' => $result['data']['notifyUrl'],
-				]
-			], $code);
-
+				'status' => 'FAILURE',
+				'message' => '',
+				'data' => []
+			], 200);
 		}
+		
 	}
 
 	public function auth_get(){
@@ -297,7 +318,6 @@ class Gateway extends RestController {
 				'transaction_status' => $status,
 				'message' => '',
 			];
-			log_message('error', 'Callback '.$payment->payment_callback); 
 			$callbackData = [
 				'transaction_id' => $transaction_id,
 				'transaction_gateway' => $payment->provider_name,
@@ -306,11 +326,17 @@ class Gateway extends RestController {
 				'transactions' => $transaction_ids,
 				'message' => 'Payment completed for transaction : '.$transaction_id,
 				'callback' => $payment->payment_callback//. '?' . http_build_query($data)
-			];	
+			];
+			log_message('debug', sprintf('Bills : %s . transactionId %s ', trim($transaction_ids, ","), $callbackData['transaction_id']));
 			//TODO : post payment to Eneopay
-			$req = new Request('POST', $payment->payment_callback, [], json_encode($data));
-			$response = $this->httpAdapter->sendRequest($req);
-			log_message('debug', $response->getBody()->getContents()); 
+			$eneoUpdate = $this->updateEneopay([
+				'amount'=> $data['transaction_amount'], 
+				'billNumbers' => trim($transaction_ids, ","),
+				'paymentMethod' => 'MyEasyLightSite',
+				'callbackUrl' => $this->app_notify_url,
+				'transactionId' => $transaction_id,
+			]);
+			log_message('debug', sprintf('Eneopay Response status : %s, message: %s. error %s', $eneoUpdate['status'], $eneoUpdate['error'] , $eneoUpdate['message'] )); 
 			
 		}else{
 			$message = 'Payment Transaction not found for '.$transaction_id;
@@ -320,6 +346,55 @@ class Gateway extends RestController {
 			];
 		}
 		return $callbackData;
+	}
+
+	private function updateEneopay($data){
+		$username = 'seven-pay-client';
+		$password = 'seven-pay-secret';
+		$header['Authorization'] = 'Basic ' . base64_encode( $username . ':' . $password);		
+		//$header['Content-Type'] = 'application/x-www-form-urlencoded';
+	
+		$client = new Client([
+			// Base URI is used with relative requests
+			'base_uri' => $this->app_eneopay_url
+		]);
+		$response = $client->request('POST', 'oauth/token', [
+				'form_params' => [
+					'username' => 'partner7',
+					'password' => 'Seven@2020',
+					'grant_type' => 'password',
+					'client_id' => 'seven-pay-client',
+				],
+				'headers' => $header,
+				'auth' => [$username, $password]
+			]);
+		$authData = json_decode($response->getBody()->getContents(), true);
+		if($response->getStatusCode() == 200){
+			$token = $authData['access_token'];
+			log_message('debug', ' Eneopay auth token ' . $token);
+		}else{
+			log_message('error', 'error getting token');
+			return [
+				'status' => $response->getStatusCode(),
+				'error' => $response->getReasonPhrase()
+			];
+		}
+
+		$updateReq = new Request('POST', $this->app_eneopay_url . 'bills/register_transaction', [
+			'Authorization' => 'Bearer ' . $token,
+			'Content-Type' => 'application/json'
+		], json_encode($data));
+		$updateResp = $this->httpAdapter->sendRequest($updateReq);
+		$updateData = json_decode($updateResp->getBody()->getContents(), true);
+		$logData = $updateData['data'] ?? [];
+		array_walk($logData, function($key, $val){
+			log_message('debug', sprintf(' data %s %s', $key, $val));
+		});
+		return [
+			'status' => $updateResp->getStatusCode(),
+			'message' => $updateData['message'],
+			'data' => $updateData['data']
+		];
 	}
 
 	/**
@@ -334,13 +409,14 @@ class Gateway extends RestController {
 		$message = $this->post('message');
 		$ip = $this->input->ip_address();
 		$status = 0;
-		if(in_array($ip, ['192.168.100.28'])){
+		if(in_array($ip, ['192.168.100.17'])){
 			$updated = $this->transactions->updateWhere(['ext_transaction_id' => $transaction_id] , ['transaction_status' => strtoupper($transaction_status)]);
 			log_message('debug', sprintf('Transaction update state for %s = %s . \n Reason : %s. $api %s', $transaction_id, $updated, $message, $ip));	
 			$status = $updated ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST;
 		}else{
 			$status = RestController::HTTP_UNAUTHORIZED;
 		}
+		log_message('debug', sprintf('Callback ID %s, transaction_status : %s, message : %s, status : %s', $transaction_id, $transaction_status, $message, $status));
 		$this->response(
 			[
 				'message' => $status == 200 ? 'ok' : 'error'
@@ -349,10 +425,10 @@ class Gateway extends RestController {
 		);
 	}
 
-	public function getApiKey_get(){
+	public function getApiKey_get($user = 0){
 		$api_key = [
 			'key' => str_rot13(sha1(time(), true)),
-			'user_id' => (time()),
+			'user_id' => $user == 0 ? time() : $user,
 			'level' => 1,
 		];
 		$inserted = $this->apikey->insert($api_key);

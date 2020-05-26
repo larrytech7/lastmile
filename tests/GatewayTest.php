@@ -40,6 +40,12 @@ final class GatewayTest extends TestCase
         $this->assertInstanceOf(EcobankProvider::class, $this->gateway);
     }
 
+    public function testUpdateEneopay(){
+        $gw = new Gateway();
+        $data = $gw->updateEneopay([]);
+        $this->assertEquals(200, $data['status']);
+    }
+
     public function testPurchase(){
         $data = []; //complete data for given provider
         $this->gateway->purchase($data);
