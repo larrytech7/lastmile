@@ -327,7 +327,7 @@ class Gateway extends RestController {
 				'message' => 'Payment completed for transaction : '.$transaction_id,
 				'callback' => $payment->payment_callback//. '?' . http_build_query($data)
 			];
-			log_message('debug', sprintf('Bills : %s . transactionId %s ', trim($transaction_ids, ","), $callbackData['transaction_id']));
+			//log_message('debug', sprintf('Bills : %s . transactionId %s ', trim($transaction_ids, ","), $callbackData['transaction_id']));
 			//TODO : post payment to Eneopay
 			$eneoUpdate = $this->updateEneopay([
 				'amount'=> $data['transaction_amount'], 
