@@ -13,7 +13,7 @@ use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
 class YupProvider implements AbstractProviderRequest{
 
     protected $httpAdapter;
-    protected $baseUrl = "https://developer.ecobank.com/corporateapi/";
+    protected $baseUrl = "";
     protected $responseData;
 
     public function __construct(){

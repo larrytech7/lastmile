@@ -172,6 +172,7 @@ $config['auth_library_function'] = '';
 */
            $config['auth_override_class_method']['payments']['index'] = 'none';
            $config['auth_override_class_method']['gateway']['callback'] = 'none';
+           $config['auth_override_class_method']['gateway']['paymentstatus'] = 'none';
            $config['auth_override_class_method']['gateway']['add'] = 'basic';
            $config['auth_override_class_method']['gateway']['notify'] = 'none';//'white-list'; //secure by IP address
 /*

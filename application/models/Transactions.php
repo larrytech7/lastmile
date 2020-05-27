@@ -70,4 +70,13 @@ class Transactions extends CI_Model{
         ->delete($this->table);
     }
 
+    /**
+     * Delete all transactions
+     *
+     * @return void
+     */
+    public function clear(){
+        return $this->db->empty_table($this->table);
+    }
+
 }
