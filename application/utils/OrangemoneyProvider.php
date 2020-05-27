@@ -125,8 +125,10 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                     'description' => 'Online Bill payment',
                     'payToken' => $payToken
                 ];
+                log_message('error', sprintf('Amount %d, notify url: %s, subscriber : %s, orderid : %s, $paytpken : %s ', 
+                    $payload['amount'], $payload['notifUrl'], $payload['subscriberMsisdn'], $payload['orderId'], $payload['payToken']) );
                 $headers[] = 'Content-Type : application/json';
-                $headers[] = 'Content-Length : '.strlen(json_encode($payload));
+                //$headers[] = 'Content-Length : '.strlen(json_encode($payload));
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, 'https://apiw.orange.cm/'. "omcoreapis/1.0.2/mp/pay");
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);

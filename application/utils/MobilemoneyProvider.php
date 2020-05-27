@@ -53,19 +53,23 @@ class MobilemoneyProvider extends AbstractProviderRequest{
         $authData = json_decode($authResponse->getBody()->getContents(), true);
 
         if($authResponse->getStatusCode() == 200 ){
+            log_message('debug', sprintf('MTN provider token %s', $authData['token']));
             $header = [
                 'Authorization' => 'Bearer '. $authData['token'],
                 'Content-Type' => "application/json",
-                'Ocp-Apim-Subscription-Key' => $this->configs['subscription-key']
+                'Ocp-Apim-Subscription-Key' => $this->configs['subscription-key'],
+                'X-Target-Environment' => 'mtncameroon',
+                'X-Reference-Id' => $this->generateUuidV4(),
+                'X-Callback-Url' => $this->configs['callback_url'],
             ];
             $url = $this->baseUrl . "collection/v1_0/requesttopay";
             $payload = [
                 'amount' => $data['transaction_amount'] ?? '0',
-                'currency' => $data['currency'] ?? 'CFA',
-                'externalId' => '3324234',
+                'currency' => $data['currency'] ?? 'XAF',
+                'externalId' => $data['transaction_id'],
                 'payer' => [
                     'partyIdType' => "MSISDN",
-                    'partyId' => $data['phone_number'] ?? 'CFA',
+                    'partyId' => $data['phone_number'] ?? '0',
                 ],
                 'payerMessage' => 'Bill payment',
                 'payeeNote' => 'Bill payment',
