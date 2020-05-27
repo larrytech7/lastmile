@@ -480,7 +480,7 @@ class Gateway extends RestController {
 		$message = $this->post('message');
 		$ip = $this->input->ip_address();
 		$status = 0;
-		if(in_array($ip, ['192.168.100.20'])){
+		if(in_array($ip, ['192.168.100.20', '52.174.179.186'])){
 			$updated = $this->transactions->updateWhere(['ext_transaction_id' => $transaction_id] , ['transaction_status' => strtoupper($transaction_status)]);
 			log_message('error', sprintf('Transaction update state for %s = %s . \n Reason : %s. $api %s', $transaction_id, $updated, $message, $ip));	
 			$status = $updated ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST;
