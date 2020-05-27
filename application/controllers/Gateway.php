@@ -30,17 +30,17 @@ class Gateway extends RestController {
 	protected $deploymentConfig = [
 		'app_callback_url' => [
 			'live' => 'http://{live-env}/gateway/callback/', //url to process payment response from providers
-			'test' => 'http://192.168.100.10/payments/gateway/callback/',
+			'test' => 'http://gateway-test.eneoapps.com/gateway/gateway/callback/',
 			'dev' => 'http://192.168.100.10/payments/gateway/callback/'
 		],
 		'app_auth_url' => [
 			'dev' => 'http://192.168.100.94/payments-web/#/hostedPayment/payments', //url for incoming app requests to authenticate and be redirected
-			'test' => 'http://192.168.100.94/payments-web/#/hostedPayment/payments', //url for incoming app requests to authenticate and be redirected
+			'test' => 'http://52.174.179.186/payments-web/#/hostedPayment/payments', //url for incoming app requests to authenticate and be redirected
 			'live' => 'http://{live-env}/payments-web/#/hostedPayment/payments'
 		],
 		'app_status_url' => [
 			'dev' => 'http://localhost:4200/payments-web/#/hostedPayment/payments/', //url for the front-end status update
-			'test' => 'http://localhost:4200/payments-web/#/hostedPayment/payments/', //url for the front-end status update
+			'test' => 'http://52.174.179.186/payments-web/#/hostedPayment/payments/', //url for the front-end status update
 			'live' => 'http://{live-env}/payments-web/#/hostedPayment/payments/'
 		],
 		'app_notify_url' => [
