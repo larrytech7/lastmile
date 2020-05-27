@@ -50,7 +50,7 @@ class Gateway extends RestController {
 		],
 		'app_eneopay_url' => [
 			'dev' => 'http://192.168.100.17:8081/eneo-pay/',
-			'test' => 'http://eneopay-test.eneoapps.com/eneo-pay/',
+			'test' => 'http://eneopay-test.eneoapps.com:8080/eneo-pay/',
 			'live' => 'http://{live-env}/eneo-pay/'
 		],
 	];
@@ -85,7 +85,7 @@ class Gateway extends RestController {
 		$ci_instance->encryption->initialize([
 			'cipher' => 'aes-256'
 		]);
-		$environment = 'dev';
+		$environment = 'test';
 		$this->app_auth_url = $this->deploymentConfig['app_auth_url'][$environment]; //change according to the deployment environment
 		$this->app_callback_url = $this->deploymentConfig['app_callback_url'][$environment]; //change according to the deployment environment
 		$this->app_status_url = $this->deploymentConfig['app_status_url'][$environment]; //change according to the deployment environment
