@@ -85,7 +85,7 @@ class Gateway extends RestController {
 		$ci_instance->encryption->initialize([
 			'cipher' => 'aes-256'
 		]);
-		$environment = 'dev';
+		$environment = 'test';
 		$this->app_auth_url = $this->deploymentConfig['app_auth_url'][$environment]; //change according to the deployment environment
 		$this->app_callback_url = $this->deploymentConfig['app_callback_url'][$environment]; //change according to the deployment environment
 		$this->app_status_url = $this->deploymentConfig['app_status_url'][$environment]; //change according to the deployment environment
