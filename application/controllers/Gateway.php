@@ -30,7 +30,7 @@ class Gateway extends RestController {
 	protected $deploymentConfig = [
 		'app_callback_url' => [
 			'live' => 'http://{live-env}/gateway/callback/', //url to process payment response from providers
-			'test' => 'http://gateway-test.eneoapps.com/gateway/gateway/callback/',
+			'test' => 'http://gateway-test.eneoapps.com/gateway/callback/',
 			'dev' => 'http://192.168.100.10/payments/gateway/callback/'
 		],
 		'app_auth_url' => [
