@@ -161,7 +161,7 @@ class Gateway extends RestController {
 	 *
 	 * @return transaction response
 	 */
-	public function init_post(){
+	public function initialize_post(){
 		$ext_transaction_id = $this->post('transaction_id');
 		$callback_url = $this->post('return_url');
 		$total = $this->post('total_amount');
@@ -191,7 +191,7 @@ class Gateway extends RestController {
 		]);
 		$link = new Link;
         $link->setProviderName('bitly');
-        $link->setLongUrl(site_url('transaction') . '?' . $query_params);
+        $link->setLongUrl($this->app_status_url . '?' . $query_params);
         //$transaction_url = $this->bitlyProvider->shorten($link);
         $transaction_url = $this->app_status_url . '?' .  $query_params;
 
