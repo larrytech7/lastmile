@@ -71,7 +71,27 @@ class Transactions extends CI_Model{
     }
 
     /**
-     * Delete all transactions
+     * Checks the integrity of the transaction to ensure that the total amount sent is the total amount received for the transaction
+     *
+     * @param string $tid
+     * @param integer $total
+     * @return boolean
+     */
+    public function validate($tid, $total){
+        if(empty($total) || $total == 0){
+            return false;
+        }
+        $sum = $this->db
+            ->from($this->table)
+            ->where('ext_transaction_id', $tid)
+            ->select_sum('transaction_amount', 'total_amount')
+            ->get();
+
+        return ($sum->num_rows() > 0) && $sum->result_object()[0]->total_amount == $total;
+    }
+
+    /**
+     * Empty transactions table
      *
      * @return void
      */

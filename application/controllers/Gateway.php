@@ -7,6 +7,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 require_once (__DIR__."/../utils/EcobankProvider.php");
 require_once (__DIR__."/../utils/MobilemoneyProvider.php");
 require_once (__DIR__."/../utils/OrangemoneyProvider.php");
+require_once (__DIR__."/../utils/YupProvider.php");
 
 require_once("TransactionEvent.php");
 
@@ -14,6 +15,10 @@ use GuzzleHttp\Psr7\Request;
 use chriskacerguis\RestServer\RestController;
 use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
 use GuzzleHttp\Client;
+
+use Mremi\UrlShortener\Model\Link;
+use Mremi\UrlShortener\Provider\Bitly\BitlyProvider;
+use Mremi\UrlShortener\Provider\Bitly\OAuthClient;
 
 class Gateway extends RestController {
 
@@ -23,7 +28,7 @@ class Gateway extends RestController {
 		'mtnmomo' => MobilemoneyProvider::class,
 		'orange' => OrangemoneyProvider::class,
 		'ecobank' => EcobankProvider::class,
-		'yup' => '',
+		'yup' => YupProvider::class,
 		'eu' => '',
 	];
 
@@ -61,6 +66,7 @@ class Gateway extends RestController {
 		'x-target-environment' => 'mtncameroon', //momo
 		'api_key' => '', //momo
 		'api_user' => '', //momo
+		'yup-merchant-id' => '1234abc', //YUP
 		'orange-api-user' => 'MYEASYLIGTHPREPROD', //orangemo
 		'orange-api-password' => 'MYEASYLIGTHPREPROD2020', //orangemo
 		'orange-consumer-key' => '4Qghk791gWiyWsYxJrwYAAsSTPsa',//orangemo
@@ -85,6 +91,11 @@ class Gateway extends RestController {
 		$ci_instance->encryption->initialize([
 			'cipher' => 'aes-256'
 		]);
+		$this->bitlyProvider = new BitlyProvider(
+            new OAuthClient('l.akah@sevenadvancedacademy.com', 'Seven2020*'),
+            ['connect_timeout' => 60, 'timeout' => 60]
+		);
+		$this->lang->load('app', 'english');
 		$environment = 'test';
 		$this->app_auth_url = $this->deploymentConfig['app_auth_url'][$environment]; //change according to the deployment environment
 		$this->app_callback_url = $this->deploymentConfig['app_callback_url'][$environment]; //change according to the deployment environment
@@ -111,50 +122,85 @@ class Gateway extends RestController {
 	 * Save incoming transactions
 	 * @return array list of active providers
 	 */
-	public function gateways_post(){
+	public function gateways_get(){
+		
+		$ext_transaction_id = $this->encryption->decrypt(base64_decode($this->get('t_id')) );
+		$callback_url = $this->encryption->decrypt(base64_decode($this->get('t_url')) );
+		$total = $this->encryption->decrypt(base64_decode($this->get('t_sum')) );
+		log_message('error', sprintf('Decoded request params. t_id = %s, t_sum = %s, t_url = %s ',$ext_transaction_id, $total, $callback_url ));
+		//check transaction contraint
+		$is_transaction_authorized = $this->transactions->validate($ext_transaction_id, $total);
+		$message = $is_transaction_authorized ? 'ok' : $this->lang->line('integrity_error');
+
+		$this->response([
+			'status' => $is_transaction_authorized ? 200 : 400,
+			'data' => $is_transaction_authorized ? $this->providers->getAll()->result_object() : [] ,
+			'transaction_id' => $ext_transaction_id,
+			'total' => $total,
+			'message' => $message,
+			'error' => $is_transaction_authorized ? ''  : $message,
+			'return_url' => $callback_url
+		], $is_transaction_authorized ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST);
+	}
+	
+	public function test_get(){
+		log_message('error', sprintf('Transaction Decoded request params. t_id = %s, t_sum = %s, t_url = %s ',
+			$this->encryption->decrypt(base64_decode($this->get('t_id')) ),
+			$this->encryption->decrypt(base64_decode($this->get('t_sum')) ),
+			$this->encryption->decrypt(base64_decode($this->get('t_url')) ) ));
+		
+		$this->response([
+			'transaction_id' => $this->encryption->decrypt(base64_decode($this->get('t_id')) ),
+			'total' => $this->encryption->decrypt(base64_decode($this->get('t_sum')) ),
+			'return_url' => $this->encryption->decrypt(base64_decode($this->get('t_url')) )
+		], RestController::HTTP_OK);
+	}
+	
+	/**
+	 * Initiate a transaction request for payment from external applications
+	 *
+	 * @return transaction response
+	 */
+	public function init_post(){
 		$ext_transaction_id = $this->post('transaction_id');
 		$callback_url = $this->post('return_url');
 		$total = $this->post('total_amount');
 		$data = $this->post('bills');
+		log_message('error', 'Total ' . $total);
 		//delete all bills before starting new transaction. @todo Remove this line when in production
 		$this->transactions->clear();
 		$bills = '';
-		if($data)
+		if($data){
+			$saved = true;
 			foreach($data as $t){
-				log_message('error', 'bill_ref : '. $t['bill_ref']);
+				log_message('error', 'bill_ref : '. $t['bill_ref'] . ' bill_amount ' . $t['amount']);
 				$bills .= $t['bill_ref'] . ',';
-				$this->transactions->insert([
+				$saved &= $this->transactions->insert([
 					'transaction_id' => $t['bill_ref'],
 					'ext_transaction_id' => $ext_transaction_id,
 					'transaction_amount' => $t['amount'],
 				]);
 			}
-		
-		//initiate an EneoPay transaction request
-		if($total > 0 && !empty($bills))
-		$eneoPayment = $this->registerEneopay([
-				'amount'=> $total, 
-				'billNumbers' => trim($bills, ","),
-				'paymentMethod' => 'MyEasyLightSite', //@todo Add payment method from application client
-				'callbackUrl' => $this->app_notify_url,
-				'transactionId' => $ext_transaction_id,
-			]);
-		log_message('error', 'Eneopay Register payment status '. $eneoPayment['status']);
-		$message = '';
-		$billArray = $eneoPayment['data'] ?? [] ;
-		foreach($billArray as $val){ //in case of error, there's going to be a data field
-			log_message('error', $val['billNumber'] . ' - ' . $val['status']);
-			$message .= $val['status'] == 'Success' ? $val['billNumber'] : '';
 		}
+		
+		//create transaction url;
+		$query_params = http_build_query( [
+			't_id' => base64_encode($this->encryption->encrypt($ext_transaction_id)),
+			't_sum' => base64_encode($this->encryption->encrypt($total)),
+			't_url' => base64_encode($this->encryption->encrypt($callback_url))
+		]);
+		$link = new Link;
+        $link->setProviderName('bitly');
+        $link->setLongUrl(site_url('transaction') . '?' . $query_params);
+        //$transaction_url = $this->bitlyProvider->shorten($link);
+        $transaction_url = $this->app_status_url . '?' .  $query_params;
 
 		$this->response([
-			'status' => $eneoPayment['status'],
-			'data' => ($eneoPayment['status'] == 200) ? $this->providers->getAll()->result_object() : [],
+			'status' => $saved ? 200 : 400,
 			'transaction_id' => $ext_transaction_id,
-			'total' => $total,
-			'message' => ($eneoPayment['status'] == 200) ? $eneoPayment['message'] : $eneoPayment['message'] . '. ' . $message,
-			'return_url' => $callback_url
-		], RestController::HTTP_OK);
+			'message' => ($saved == 200) ? $this->lang->line('transaction_created') : $this->lang->line('transaction_not_created'),
+			'transaction_url' => $saved ? $transaction_url : ''
+		], $saved ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST);
 	}
 
 	/**
@@ -184,11 +230,49 @@ class Gateway extends RestController {
 		$this->payments->insert($payment);
 		$this->gatewayConfig['callback_url'] = $this->app_callback_url . $gateway . '/'.(base64_encode(($transaction_id)));
 		
-		$providerGateway = new $this->paymentProviders[$gateway]($this->gatewayConfig); //instantiates the right gateway according to the gateway code
-		$response = $providerGateway->purchase($data); //returns data from querying the actual provider
-		log_message('error', 'encrypted ID request ' . base64_encode(($transaction_id)));
+		$providerGateway = new $this->paymentProviders[$gateway](array_merge($this->gatewayConfig, $this->config->item($gateway))); //instantiates the right gateway according to the gateway code
+		//initiate an EneoPay transaction request
+		$billTransactions = $this->transactions->getWhere(['ext_transaction_id' => $transaction_id])->result_array();
+		if(!empty($billTransactions)){
+			$bills = '';
+			$total = 0;
+			foreach($billTransactions as $bill){
+				$bills .= $bill['transaction_id'] . ',';
+				$total += intval($bill['transaction_amount']); 
+			}
+			$eneoPayment = $this->registerEneopay(
+				[
+					'username' => $this->config->item($gateway)['eneopay_username'] ,
+					 'password' => $this->config->item($gateway)['eneopay_password']
+				], 
+				[
+					'amount'=> $total, 
+					'billNumbers' => trim($bills, ","),
+					'paymentMethod' => 'MyEasyLightSite', //@todo Add payment method from application client
+					'callbackUrl' => $this->app_notify_url,
+					'transactionId' => $transaction_id,
+				]
+			);
+			log_message('error', 'Eneopay Register payment status ' . $eneoPayment['status']);
+			$message = '';
+			$billArray = $eneoPayment['data'] ?? [] ;
+			foreach($billArray as $val){ //in case of error, there's going to be a data field
+				log_message('error', $val['billNumber'] . ' - ' . $val['status']);
+				$message .= $val['status'] == 'Success' ? $val['billNumber'] : '';
+			}
+		}
+		if($eneoPayment['status'] == 200){
+			$response = $providerGateway->purchase($data); //returns data from querying the actual provider
+		}else{
+			$response = [
+				'status' => 400,
+				'error' => $eneoPayment['error'],
+				'data' => [],
+				'message' => ''
+			];
+		}
+		log_message('error', 'encrypted trans ID ' . base64_encode(($transaction_id)));
 		//die(var_dump($response));
-		//return REST response
 		$this->response([
 			'status' => $response['status'],
 			'message' => $response['message'],
@@ -227,7 +311,7 @@ class Gateway extends RestController {
 			curl_close($ch);
 	
 			$result = json_decode($response, true);
-			die(var_dump($result));
+			//die(var_dump($result));
 	
 			if($err){
 				//return response
@@ -237,13 +321,14 @@ class Gateway extends RestController {
 				], $code);
 			}else{
 				
-				$status = $result['data']['status'];
+				$status = 'success'; //$result['data']['status']; @todo Put this back when in production
 				//update transaction status
 				$processsedData = $this->processCallbackData($transaction_id, strtoupper($status));
 				//return response
 				$this->response([
-					'status' => $status,
+					'status' => strtoupper($status),
 					'message' => $result['data']['confirmtxnmessage'],
+					'error' => $processsedData['error'] ?? '',
 					'data' => [
 						'transactions' => $processsedData['transactions'] ?? '',
 						'transaction_id' => $transaction_id,
@@ -284,7 +369,7 @@ class Gateway extends RestController {
 			case 'ecobank': //process visa callback
 				$payment_status = $this->get('vpc_Message') == 'Approved' ? 'SUCCESS' : strtoupper($this->get('vpc_Message'));
 				$gateway_transaction_id = $this->get('vpc_TransactionNo'); ///TODO may be needed later
-				log_message('error', 'Gateway transction id : ' . $gateway_transaction_id . ' Payment status : ' . $payment_status);
+				log_message('error', 'Ecobank Gateway transaction id : ' . $gateway_transaction_id . ' Payment status : ' . $payment_status);
 				break;
 			case 'orange': //process orangemo callback
 
@@ -293,6 +378,16 @@ class Gateway extends RestController {
 
 				break;
 			case 'yup':
+				//@todo  Verifiy the integrity of the transaction made (amount and transaction id)
+				/*
+					$amount = $this->get('amount');
+					$currency = $this->get('currency');
+					$transaction_id = $this->get('purchaseref');
+				*/
+				$payment_status = $this->get('status') == 'OK' ? 'SUCCESS' : 'FAILED';
+				$gateway_transaction_id = $this->get('paymentref');
+
+				log_message('error', 'Ecobank Gateway transaction id : ' . $gateway_transaction_id . ' Payment status : ' . $payment_status);
 				break;
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
@@ -330,9 +425,13 @@ class Gateway extends RestController {
 				$tx['amount'] = $tx['transaction_amount'];
 				$tx['bill_ref'] = $tx['transaction_id'];
 				$transaction_ids .= $tx['bill_ref'] . ',';
-			} 
+			}
+			$providerUser = $this->config->item($payment->payment_provider); 
 			//update eneopay about transaction
 			$eneoUpdate = $this->updateEneopay([
+				'username' => $providerUser['eneopay_username'],
+				'password' => $providerUser['eneopay_password'],
+			], [
 				'status' => $status == strtoupper('success') ? 'Cash' : 'NotCash',
 				'transactionId' => $transaction_id,
 			]);
@@ -366,7 +465,7 @@ class Gateway extends RestController {
 	 * @param array $data
 	 * @return array data from the request containing status and message about the transaction in eneopay
 	 */
-	private function registerEneopay($data){
+	private function registerEneopay($user, $data){
 		$username = 'seven-pay-client';
 		$password = 'seven-pay-secret';
 		$header['Authorization'] = 'Basic ' . base64_encode( $username . ':' . $password);		
@@ -378,8 +477,8 @@ class Gateway extends RestController {
 		]);
 		$response = $client->request('POST', 'oauth/token', [
 				'form_params' => [
-					'username' => 'partner7',
-					'password' => 'Seven@2020',
+					'username' => $user['username'],
+					'password' => $user['password'],
 					'grant_type' => 'password',
 					'client_id' => 'seven-pay-client',
 				],
@@ -391,7 +490,7 @@ class Gateway extends RestController {
 			$token = $authData['access_token'];
 			log_message('error', ' Eneopay auth token ' . $token);
 		}else{
-			log_message('error', 'error getting token');
+			log_message('error', 'error getting eneopay register token');
 			return [
 				'status' => $response->getStatusCode(),
 				'error' => $response->getReasonPhrase()
@@ -411,6 +510,7 @@ class Gateway extends RestController {
 		return [
 			'status' => $updateResp->getStatusCode(),
 			'message' => $updateData['message'],
+			'error' => $updateResp->getStatusCode() == 200 ? '' : $this->lang->line('eneopay_error') . $updateData['message'],
 			'data' => $updateData['data']
 		];
 	}
@@ -422,7 +522,7 @@ class Gateway extends RestController {
 	 * @param array $data
 	 * @return array data from the request containing status and message about the transaction state in Eneopay
 	 */
-	private function updateEneopay($data){
+	private function updateEneopay($user, $data){
 		$username = 'seven-pay-client';
 		$password = 'seven-pay-secret';
 		$header['Authorization'] = 'Basic ' . base64_encode( $username . ':' . $password);
@@ -433,8 +533,8 @@ class Gateway extends RestController {
 		]);
 		$response = $client->request('POST', 'oauth/token', [
 				'form_params' => [
-					'username' => 'partner7',
-					'password' => 'Seven@2020',
+					'username' => $user['username'] ?? '',
+					'password' => $user['password'] ?? '',
 					'grant_type' => 'password',
 					'client_id' => 'seven-pay-client',
 				],
@@ -444,9 +544,9 @@ class Gateway extends RestController {
 		$authData = json_decode($response->getBody()->getContents(), true);
 		if($response->getStatusCode() == 200){
 			$token = $authData['access_token'];
-			log_message('error', ' Eneopay auth token ' . $token);
+			log_message('error', ' Eneopay update token ' . $token);
 		}else{
-			log_message('error', 'error getting token');
+			log_message('error', 'error getting eneopay update token');
 			return [
 				'status' => $response->getStatusCode(),
 				'error' => $response->getReasonPhrase()

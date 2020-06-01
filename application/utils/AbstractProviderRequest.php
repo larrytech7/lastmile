@@ -9,9 +9,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 abstract class AbstractProviderRequest {
 
     protected $configs;
+    protected $eneopay_user;
+    protected $eneopay_password;
 
     public function __construct($configs){
         $this->configs = $configs;
+        $this->eneopay_user = $this->config['eneopay_username'];
+        $this->eneopay_password = $this->config['eneopay_password'];
     }
 
     public abstract function authorize(array $data = []);

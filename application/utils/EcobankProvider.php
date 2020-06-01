@@ -18,6 +18,7 @@ class EcobankProvider extends AbstractProviderRequest{
     protected $config = [];
 
     public function __construct($config = []){
+        parent::__construct($config);
         $this->httpAdapter = new GuzzleAdapter(null);
         $this->responseData = [];
         $this->config = $config;
