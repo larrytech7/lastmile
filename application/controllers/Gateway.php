@@ -198,7 +198,7 @@ class Gateway extends RestController {
 		$this->response([
 			'status' => $saved ? 200 : 400,
 			'transaction_id' => $ext_transaction_id,
-			'message' => ($saved == 200) ? $this->lang->line('transaction_created') : $this->lang->line('transaction_not_created'),
+			'message' => $saved ? $this->lang->line('transaction_created') : $this->lang->line('transaction_not_created'),
 			'transaction_url' => $saved ? $transaction_url : ''
 		], $saved ? RestController::HTTP_OK : RestController::HTTP_BAD_REQUEST);
 	}
