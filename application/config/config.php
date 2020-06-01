@@ -521,3 +521,23 @@ $config['rewrite_short_tags'] = FALSE;
 | Array:		array('10.0.1.200', '192.168.5.0/24')
 */
 $config['proxy_ips'] = '';
+
+/**
+ * Third party configuration for EneoPay
+ */
+$config['orange'] = [
+    'eneopay_username' => 'partner7',
+    'eneopay_password' => 'Seven@2020',
+];
+$config['mtnmomo'] = [
+    'eneopay_username' => '',
+    'eneopay_password' => '',
+];
+$config['yup'] = [
+    'eneopay_username' => '',
+    'eneopay_password' => '',
+];
+$config['ecobank'] = [
+    'eneopay_username' => 'partner7',
+    'eneopay_password' => 'Seven@2020',
+];

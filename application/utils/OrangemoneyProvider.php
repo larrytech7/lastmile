@@ -34,7 +34,7 @@ class OrangemoneyProvider extends AbstractProviderRequest{
      * @return HttpResponse object
      */
     public function authorize(array $data = []){
-       $auth_url = $this->baseUrl."token";
+       $auth_url = $this->baseUrl . "token";
 
         // this sensitive information, we need to write this in config.php and encrypt it
         $consumer_key = $this->configs['orange-consumer-key'];
@@ -56,18 +56,20 @@ class OrangemoneyProvider extends AbstractProviderRequest{
         curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
         $response = curl_exec($ch);
         $err = curl_error($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
         if ($err) {
+            log_message('error', 'Orange Token request failed. ' . $err);
             return [
-                'status' => 400,
-                'message' => $err
+                'status' => 503,
+                'message' => 'Service unavailable. Please try again later.'
             ];
         } else {
             $result = json_decode($response, true);
-            log_message('error', 'OrangeMo token result '.$result['access_token']);
+            log_message('error', 'OrangeMo token result ' . $result['access_token'] . $err);
             return [
-                    'status' => 200,
+                    'status' => $code,
                     'message' => 'ok',
                     'data' => [
                         'token' => $result['access_token'],
@@ -102,11 +104,14 @@ class OrangemoneyProvider extends AbstractProviderRequest{
             //curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
             $response = curl_exec($ch);
             $err = curl_error($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
             
+            
             if ($err) {
+                log_message('error', sprintf('OrangeMo init. Error %s, message %s', $code, $err));
                 return [
-                    'status' => 400,
+                    'status' => $code,
                     'message' => $err
                 ];
             } else {
