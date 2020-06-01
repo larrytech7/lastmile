@@ -96,7 +96,7 @@ class Gateway extends RestController {
             ['connect_timeout' => 60, 'timeout' => 60]
 		);
 		$this->lang->load('app', 'english');
-		$environment = 'dev';
+		$environment = 'test';
 		$this->app_auth_url = $this->deploymentConfig['app_auth_url'][$environment]; //change according to the deployment environment
 		$this->app_callback_url = $this->deploymentConfig['app_callback_url'][$environment]; //change according to the deployment environment
 		$this->app_status_url = $this->deploymentConfig['app_status_url'][$environment]; //change according to the deployment environment
@@ -311,7 +311,7 @@ class Gateway extends RestController {
 			curl_close($ch);
 	
 			$result = json_decode($response, true);
-			die(var_dump($result));
+			//die(var_dump($result));
 	
 			if($err){
 				//return response
@@ -321,13 +321,14 @@ class Gateway extends RestController {
 				], $code);
 			}else{
 				
-				$status = $result['data']['status'];
+				$status = 'success'; //$result['data']['status']; @todo Put this back when in production
 				//update transaction status
 				$processsedData = $this->processCallbackData($transaction_id, strtoupper($status));
 				//return response
 				$this->response([
-					'status' => $status,
+					'status' => strtoupper($status),
 					'message' => $result['data']['confirmtxnmessage'],
+					'error' => $processsedData['error'] ?? '',
 					'data' => [
 						'transactions' => $processsedData['transactions'] ?? '',
 						'transaction_id' => $transaction_id,
