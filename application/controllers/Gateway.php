@@ -168,7 +168,7 @@ class Gateway extends RestController {
 		$data = $this->post('bills');
 		log_message('error', 'Total ' . $total);
 		//delete all bills before starting new transaction. @todo Remove this line when in production
-		$this->transactions->clear();
+		//$this->transactions->clear();
 		$bills = '';
 		if($data){
 			$saved = true;
@@ -339,7 +339,7 @@ class Gateway extends RestController {
 				], $code);
 	
 			}
-		}else if ($gateway == 'mtnmo'){
+		}else if ($gateway == 'mtnmomo'){
 			$this->response([
 				'status' => 'FAILURE',
 				'message' => '',
