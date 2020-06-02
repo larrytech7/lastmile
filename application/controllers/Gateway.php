@@ -359,10 +359,9 @@ class Gateway extends RestController {
 	 * @return array response data
 	 */
 	public function callback_get($gateway, $id){
-		//TODO : We need to parse calback  requests from payment providers
-		$request_data = file_get_contents("php://input");
+		//Parse calback  requests from payment providers
 		$transaction_id = base64_decode($id);// ($this->encryption->decrypt(($id)));
-		log_message('error', $request_data . 'encrypted ID Response : ' . $id . ' decrypted ID '.$transaction_id);
+		log_message('error', 'Encrypted ID from Gateway payment Response : ' . $id . ' decrypted ID '.$transaction_id);
 		$payment_status = '';
 		//process callback
 		switch($gateway){
@@ -370,6 +369,7 @@ class Gateway extends RestController {
 				$payment_status = $this->get('vpc_Message') == 'Approved' ? 'SUCCESS' : strtoupper($this->get('vpc_Message'));
 				$gateway_transaction_id = $this->get('vpc_TransactionNo'); ///TODO may be needed later
 				log_message('error', 'Ecobank Gateway transaction id : ' . $gateway_transaction_id . ' Payment status : ' . $payment_status);
+				log_message('error', 'Ecobank Gateway response data : ' . implode(' | ', $_GET));
 				break;
 			case 'orange': //process orangemo callback
 
@@ -387,7 +387,7 @@ class Gateway extends RestController {
 				$payment_status = $this->get('status') == 'OK' ? 'SUCCESS' : 'FAILED';
 				$gateway_transaction_id = $this->get('paymentref');
 
-				log_message('error', 'Ecobank Gateway transaction id : ' . $gateway_transaction_id . ' Payment status : ' . $payment_status);
+				log_message('error', 'YUP Gateway transaction id : ' . $gateway_transaction_id . ' Payment status : ' . $payment_status);
 				break;
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
@@ -439,14 +439,15 @@ class Gateway extends RestController {
 			
 			$callbackData = [
 				'transaction_id' => $transaction_id,
-				'transaction_gateway' => $payment->provider_name,
+				'transaction_gateway' => $payment->payment_provider,
 				'transaction_amount' => $payment->payment_amount,
 				'transaction_status' => in_array($status, ['success', 'SUCCESS', 'OK', 'ok']) ? 'SUCCESS' : ($status == strtoupper('pending') ? 'PENDING' : 'FAILED'),
-				'transactions' => $transaction_ids,
+				'transactions' => trim($transaction_ids, ','),
 				'message' => in_array($status, ['success', 'SUCCESS', 'OK', 'ok' , 'Pending', 'PENDING', 'pending']) ? 'Payment completed for transaction : '.$transaction_id : $status,
+				'error' => in_array($status, ['success', 'SUCCESS', 'OK', 'ok' , 'Pending', 'PENDING', 'pending']) ? '' : $status,
 				'callback' => $payment->payment_callback//. '?' . http_build_query($data)
 			];
-			log_message('error', sprintf('Eneopay Response. status : %s, message: %s. error %s.', $eneoUpdate['status'], $eneoUpdate['error'] , $eneoUpdate['message'] )); 
+			log_message('error', sprintf('Eneopay Response. status : %s, error: %s. message %s.', $eneoUpdate['status'], $eneoUpdate['error'] , $eneoUpdate['message'] )); 
 			
 		}else{
 			$message = 'Payment Transaction not found for '.$transaction_id;
