@@ -528,16 +528,20 @@ $config['proxy_ips'] = '';
 $config['orange'] = [
     'eneopay_username' => 'partner7',
     'eneopay_password' => 'Seven@2020',
+    'eneopay_checkout_code' => 'OR123',
 ];
 $config['mtnmomo'] = [
     'eneopay_username' => '',
     'eneopay_password' => '',
+    'eneopay_checkout_code' => '',
 ];
 $config['yup'] = [
     'eneopay_username' => '',
     'eneopay_password' => '',
+    'eneopay_checkout_code' => '',
 ];
 $config['ecobank'] = [
     'eneopay_username' => 'partner7',
     'eneopay_password' => 'Seven@2020',
+    'eneopay_checkout_code' => 'EC123',
 ];

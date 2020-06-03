@@ -130,7 +130,7 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                     'description' => 'Online Bill payment',
                     'payToken' => $payToken
                 ];
-                log_message('error', sprintf('Amount %d, notify url: %s, subscriber : %s, orderid : %s, $paytpken : %s ', 
+                log_message('error', sprintf('Amount %d, notify url: %s, subscriber : %s, orderid : %s, $paytoken : %s ', 
                     $payload['amount'], $payload['notifUrl'], $payload['subscriberMsisdn'], $payload['orderId'], $payload['payToken']) );
                 $headers[] = 'Content-Type : application/json';
                 //$headers[] = 'Content-Length : '.strlen(json_encode($payload));
@@ -163,6 +163,7 @@ class OrangemoneyProvider extends AbstractProviderRequest{
                     return $this->responseData;
                 }else{
                     $result = json_decode($response, true);
+                    log_message('error', sprintf('Orangemo payment request data %s', implode(' | ', $result)));
                     $this->responseData =  [
                         'status' => $result['data']['status'],
                         'message' => $result['message'] . '. Enter your PIN on your mobile to confirm.',
@@ -183,9 +184,9 @@ class OrangemoneyProvider extends AbstractProviderRequest{
             
         }else{
             return [
-                'error' => 'Error ocurred with the request. Please try again',
+                'error' => $authData['message'],
                 'status' => $authData['status'],
-                'message' => $authData['message'],
+                'message' => '',
             ];
         }
     }

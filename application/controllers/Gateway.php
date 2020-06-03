@@ -8,6 +8,7 @@ require_once (__DIR__."/../utils/EcobankProvider.php");
 require_once (__DIR__."/../utils/MobilemoneyProvider.php");
 require_once (__DIR__."/../utils/OrangemoneyProvider.php");
 require_once (__DIR__."/../utils/YupProvider.php");
+require_once (__DIR__."/../utils/EuProvider.php");
 
 require_once("TransactionEvent.php");
 
@@ -29,7 +30,7 @@ class Gateway extends RestController {
 		'orange' => OrangemoneyProvider::class,
 		'ecobank' => EcobankProvider::class,
 		'yup' => YupProvider::class,
-		'eu' => '',
+		'eu' => EuProvider::class,
 	];
 
 	protected $deploymentConfig = [
@@ -44,7 +45,7 @@ class Gateway extends RestController {
 			'live' => 'http://{live-env}/payments-web/#/hostedPayment/payments'
 		],
 		'app_status_url' => [
-			'dev' => 'http://localhost:4200/payments-web/#/hostedPayment/payments/', //url for the front-end status update
+			'dev' => 'http://192.168.100.94:4200/payments-web/#/hostedPayment/payments/', //url for the front-end status update
 			'test' => 'http://52.174.179.186/payments-web/#/hostedPayment/payments/', //url for the front-end status update
 			'live' => 'http://{live-env}/payments-web/#/hostedPayment/payments/'
 		],
@@ -66,6 +67,9 @@ class Gateway extends RestController {
 		'x-target-environment' => 'mtncameroon', //momo
 		'api_key' => '', //momo
 		'api_user' => '', //momo
+		'eu-transaction-key' => 'abcd1234', //eu mobile
+		'eu-id' => 19, //eu mobile
+		'eu-password' => 'EN15OE3U', //eu mobile
 		'yup-merchant-id' => '1234abc', //YUP
 		'orange-api-user' => 'MYEASYLIGTHPREPROD', //orangemo
 		'orange-api-password' => 'MYEASYLIGTHPREPROD2020', //orangemo
@@ -96,7 +100,7 @@ class Gateway extends RestController {
             ['connect_timeout' => 60, 'timeout' => 60]
 		);
 		$this->lang->load('app', 'english');
-		$environment = 'test';
+		$environment = 'dev';
 		$this->app_auth_url = $this->deploymentConfig['app_auth_url'][$environment]; //change according to the deployment environment
 		$this->app_callback_url = $this->deploymentConfig['app_callback_url'][$environment]; //change according to the deployment environment
 		$this->app_status_url = $this->deploymentConfig['app_status_url'][$environment]; //change according to the deployment environment
@@ -144,16 +148,34 @@ class Gateway extends RestController {
 	}
 	
 	public function test_get(){
-		log_message('error', sprintf('Transaction Decoded request params. t_id = %s, t_sum = %s, t_url = %s ',
-			$this->encryption->decrypt(base64_decode($this->get('t_id')) ),
-			$this->encryption->decrypt(base64_decode($this->get('t_sum')) ),
-			$this->encryption->decrypt(base64_decode($this->get('t_url')) ) ));
-		
-		$this->response([
-			'transaction_id' => $this->encryption->decrypt(base64_decode($this->get('t_id')) ),
-			'total' => $this->encryption->decrypt(base64_decode($this->get('t_sum')) ),
-			'return_url' => $this->encryption->decrypt(base64_decode($this->get('t_url')) )
-		], RestController::HTTP_OK);
+		$client = new Client([
+			// Base URI is used with relative requests
+			'base_uri' => 'http://195.24.207.114:9960/'
+		]);
+		$response = $client->request('POST', 'eumobile_api/v2.1/?service=getKey', [
+				'form_params' => [
+					'hash' => md5(19 . 'EN15OE3U' . 'abcd1234'),
+					'id' => 19,
+					'pwd' => 'EN15OE3U',
+				]
+			]);
+		$responseData = json_decode($response->getBody()->getContents(), true);
+		if($response->getStatusCode() == 100){
+			$token = $responseData['key'];
+			log_message('error', ' Eu Key auth token ' . $token);
+			$this->response([
+				'status' => $responseData['status'],
+				'message' => $responseData['message'],
+				'key' => $responseData['key'],
+			], $response->getStatusCode());
+		}else{
+			log_message('error', 'error getting new EU key');
+			$this->response([
+				'status' => $response->getStatusCode(),
+				'message' => $responseData['message'],
+				'data' => md5(19 . 'EN15OE3U' . 'abcd1234')
+			], $response->getStatusCode());
+		}
 	}
 	
 	/**
@@ -176,7 +198,7 @@ class Gateway extends RestController {
 				log_message('error', 'bill_ref : '. $t['bill_ref'] . ' bill_amount ' . $t['amount']);
 				$bills .= $t['bill_ref'] . ',';
 				$saved &= $this->transactions->insert([
-					'transaction_id' => $t['bill_ref'],
+					'bill_id' => $t['bill_ref'],
 					'ext_transaction_id' => $ext_transaction_id,
 					'transaction_amount' => $t['amount'],
 				]);
@@ -212,10 +234,12 @@ class Gateway extends RestController {
 		$gateway = $this->post('gateway');
 		$amount = $this->post('amount');
 		$phone_number = $this->post('phone_number');
+		$name = $this->post('name');
 		$transaction_id = $this->post('transaction_id');
 		$callback_url = $this->post('return_url');
 		//data to pass to the payment processor
 		$data['transaction_amount'] = $amount;
+		$data['name'] = $name;
 		$data['phone_number'] = $phone_number;
 		$data['transaction_id'] = $transaction_id;
 		//save pending payment
@@ -232,12 +256,13 @@ class Gateway extends RestController {
 		
 		$providerGateway = new $this->paymentProviders[$gateway](array_merge($this->gatewayConfig, $this->config->item($gateway))); //instantiates the right gateway according to the gateway code
 		//initiate an EneoPay transaction request
+		log_message('error', 'Transaction_amount ' . $data['transaction_amount']);
 		$billTransactions = $this->transactions->getWhere(['ext_transaction_id' => $transaction_id])->result_array();
 		if(!empty($billTransactions)){
 			$bills = '';
 			$total = 0;
 			foreach($billTransactions as $bill){
-				$bills .= $bill['transaction_id'] . ',';
+				$bills .= $bill['bill_id'] . ',';
 				$total += intval($bill['transaction_amount']); 
 			}
 			$eneoPayment = $this->registerEneopay(
@@ -249,7 +274,7 @@ class Gateway extends RestController {
 					'amount'=> $total, 
 					'billNumbers' => trim($bills, ","),
 					'paymentMethod' => 'MyEasyLightSite', //@todo Add payment method from application client
-					'callbackUrl' => $this->app_notify_url,
+					'paymentCheckoutCode' => $this->config->item($gateway)['eneopay_checkout_code'],
 					'transactionId' => $transaction_id,
 				]
 			);
@@ -258,15 +283,16 @@ class Gateway extends RestController {
 			$billArray = $eneoPayment['data'] ?? [] ;
 			foreach($billArray as $val){ //in case of error, there's going to be a data field
 				log_message('error', $val['billNumber'] . ' - ' . $val['status']);
-				$message .= $val['status'] == 'Success' ? $val['billNumber'] : '';
+				$message .= $val['billNumber'] . ',';
 			}
 		}
 		if($eneoPayment['status'] == 200){
 			$response = $providerGateway->purchase($data); //returns data from querying the actual provider
 		}else{
+			$this->processCallbackData($transaction_id, 'failed'); //fail the transaction in eneopay
 			$response = [
 				'status' => 400,
-				'error' => $eneoPayment['error'],
+				'error' => $eneoPayment['error'] . '(' .trim($message, ','). ')',
 				'data' => [],
 				'message' => ''
 			];
@@ -280,7 +306,8 @@ class Gateway extends RestController {
 			'error' => $response['error'] ?? '',
 			'isRedirect' => $providerGateway->isRedirect(),
 			'redirect_url' => $providerGateway->getRedirectUrl(),
-			'secure_hash' => $response['secure_hash']
+			'callback' => $callback_url,
+			'secure_hash' => ''//$response['secure_hash']
 		], 
 		$response['status'] ?? 401);
 	}
@@ -314,6 +341,7 @@ class Gateway extends RestController {
 			//die(var_dump($result));
 	
 			if($err){
+				$this->processCallbackData($transaction_id, 'failed');
 				//return response
 				$this->response([
 					'status' => $code,	
@@ -345,8 +373,51 @@ class Gateway extends RestController {
 				'message' => '',
 				'data' => []
 			], 200);
+		}else if ($gateway == 'eu'){
+			$phone = $this->get('phone_number');
+			$client = new Client([
+				// Base URI is used with relative requests
+				'base_uri' => 'http://195.24.207.114:9960/'
+			]);
+			$response = $client->request('POST', 'eumobile_api/v2.1/?service=getPaymentStatus', [
+					'form_params' => [
+						'hash' => md5($this->gatewayConfig['eu-id'] . $this->gatewayConfig['eu-password'] . $transaction_id . $phone . $this->config['eu-transaction-key']),
+						'id' => $this->config['eu-id'] ,
+						'pwd' => $this->config['eu-password'],
+						'billno' => $transaction_id, //@todo This is limited to 100 characters and may become a source of error if the transaction id becomes greater
+						'phone' => '237' . $phone
+					]
+				]);
+			$paymentResponseData = json_decode($response->getBody()->getContents(), true);
+
+			if($response->getStatusCode() != 200 ){ //error in http request. Could be network or other
+				$this->processCallbackData($transaction_id, 'failed');
+				//return response
+				$this->response([
+					'status' => $response->getStatusCode(),	
+					'error' => $response->getReasonPhrase(),
+					'message' => ''
+				], $response->getStatusCode);
+			}else{
+				
+				$status = $paymentResponseData['status'] == 1 ? 'success' : ($paymentResponseData['status'] == 0 ? 'failed' : 'pending'); 
+				// @todo Put this back when in production
+				//update transaction status
+				$processsedData = $this->processCallbackData($transaction_id, strtoupper($status));
+				//return response
+				$this->response([
+					'status' => strtoupper($status),
+					'message' => $status == 'success' ? $paymentResponseData['message'] : '',
+					'error' => $status == 'success' ? '' :  ($processsedData['error'] ?? $status) . $paymentResponseData['message'] ?? '',
+					'data' => [
+						'transactions' => $processsedData['transactions'] ?? '',
+						'transaction_id' => $transaction_id,
+						'callback_url' => $processsedData['callback'],
+					]
+				], $response->getStatusCode());
+	
+			}
 		}
-		
 	}
 
 	public function auth_get(){
@@ -371,14 +442,11 @@ class Gateway extends RestController {
 				log_message('error', 'Ecobank Gateway transaction id : ' . $gateway_transaction_id . ' Payment status : ' . $payment_status);
 				log_message('error', 'Ecobank Gateway response data : ' . implode(' | ', $_GET));
 				break;
-			case 'orange': //process orangemo callback
-
-				break;
 			case 'mtnmomo': //process momo callback
 
 				break;
 			case 'yup':
-				//@todo  Verifiy the integrity of the transaction made (amount and transaction id)
+				//@todo  Verify the integrity of the transaction made (amount and transaction id)
 				/*
 					$amount = $this->get('amount');
 					$currency = $this->get('currency');
@@ -392,6 +460,7 @@ class Gateway extends RestController {
 		}
 		$response = $this->processCallbackData($transaction_id, $payment_status);
 		if(array_key_exists('transaction_status', $response) && in_array($response['transaction_status'], ['SUCCESS', 'PENDING'])){
+			log_message('error', 'redirect url ' . $this->app_status_url . 'success?' . http_build_query($response) );
 			redirect($this->app_status_url . 'success?' . http_build_query($response));
 		}else{ //response has error
 			redirect($this->app_status_url . 'error?' . http_build_query($response));
@@ -423,10 +492,10 @@ class Gateway extends RestController {
 			$transaction_ids = '';
 			foreach($transactions as &$tx){
 				$tx['amount'] = $tx['transaction_amount'];
-				$tx['bill_ref'] = $tx['transaction_id'];
+				$tx['bill_ref'] = $tx['bill_id'];
 				$transaction_ids .= $tx['bill_ref'] . ',';
 			}
-			$providerUser = $this->config->item($payment->payment_provider); 
+			$providerUser = $this->config->item($payment->payment_provider);
 			//update eneopay about transaction
 			$eneoUpdate = $this->updateEneopay([
 				'username' => $providerUser['eneopay_username'],
@@ -447,7 +516,7 @@ class Gateway extends RestController {
 				'error' => in_array($status, ['success', 'SUCCESS', 'OK', 'ok' , 'Pending', 'PENDING', 'pending']) ? '' : $status,
 				'callback' => $payment->payment_callback//. '?' . http_build_query($data)
 			];
-			log_message('error', sprintf('Eneopay Response. status : %s, error: %s. message %s.', $eneoUpdate['status'], $eneoUpdate['error'] , $eneoUpdate['message'] )); 
+			log_message('error', sprintf('Eneopay Response. status : %s, error: %s. message %s. Transactions %s', $eneoUpdate['status'], $eneoUpdate['error'] , $eneoUpdate['message'], $transaction_ids )); 
 			
 		}else{
 			$message = 'Payment Transaction not found for '.$transaction_id;
