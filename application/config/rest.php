@@ -94,7 +94,7 @@ $config['enable_emulate_request'] = true;
 | e.g: My Secret REST API
 |
 */
-$config['rest_realm'] = 'MOCK PAYMENTS REST API';
+$config['rest_realm'] = 'MOCK MOMO PAY REST API';
 
 /*
 |--------------------------------------------------------------------------
@@ -137,8 +137,8 @@ $config['auth_source'] = '';
 | requests etc), set to TRUE;
 |
 */
-$config['allow_auth_and_keys'] = true;
-$config['strict_api_and_auth'] = true; // force the use of both api and auth before a valid api request is made
+$config['allow_auth_and_keys'] = false;
+$config['strict_api_and_auth'] = false; // force the use of both api and auth before a valid api request is made
 
 /*
 |--------------------------------------------------------------------------
@@ -171,10 +171,6 @@ $config['auth_library_function'] = '';
 | e.g:
 */
            $config['auth_override_class_method']['payments']['index'] = 'none';
-           $config['auth_override_class_method']['gateway']['callback'] = 'none';
-           $config['auth_override_class_method']['gateway']['paymentstatus'] = 'none';
-           $config['auth_override_class_method']['gateway']['add'] = 'basic';
-           $config['auth_override_class_method']['gateway']['notify'] = 'white-list'; //secure by IP address
 /*
 |           $config['auth_override_class_method']['deals']['insert'] = 'digest';
 |           $config['auth_override_class_method']['accounts']['user'] = 'basic';
@@ -200,8 +196,6 @@ $config['auth_library_function'] = '';
 | example:
 */
             $config['auth_override_class_method_http']['payments']['index']['*'] = 'none';
-            $config['auth_override_class_method_http']['gateway']['callback']['*'] = 'none';
-            //$config['auth_override_class_method_http']['gateway']['index']['*'] = 'basic';
 /*
 |            $config['auth_override_class_method_http']['deals']['view']['get'] = 'none';
 |            $config['auth_override_class_method_http']['deals']['insert']['post'] = 'none';
@@ -219,12 +213,7 @@ $config['auth_library_function'] = '';
 | Array of usernames and passwords for login, if ldap is configured this is ignored
 |
 */
-$config['rest_valid_logins'] = [
-  'sevenpay-payments' => 'sevenpay-payments@2020',
-  'myeasylight-payments' => 'easylight-payments@2020*',
-  'ebills-payments' => 'ebills-payments@2020*',
-  'admin-payments' => 'dev-admin@2020*'
-];
+$config['rest_valid_logins'] = ['sevenpay-payments' => 'sevenpay-payments@2020'];
 
 /*
 |--------------------------------------------------------------------------
@@ -266,7 +255,7 @@ $config['rest_handle_exceptions'] = true;
 | 127.0.0.1 and 0.0.0.0 are allowed by default
 |
 */
-$config['rest_ip_whitelist'] = '192.168.100.17';
+$config['rest_ip_whitelist'] = '';
 
 /*
 |--------------------------------------------------------------------------
@@ -312,7 +301,7 @@ $config['rest_database_group'] = 'default';
 | The table name in your database that stores API keys
 |
 */
-$config['rest_keys_table'] = 'api_keys';
+$config['rest_keys_table'] = 'keys';
 
 /*
 |--------------------------------------------------------------------------
@@ -324,7 +313,7 @@ $config['rest_keys_table'] = 'api_keys';
 | column name see 'rest_key_column'
 |
 | Default table schema:
-|   CREATE TABLE `api_keys` (
+|   CREATE TABLE `keys` (
 |       `id` INT(11) NOT NULL AUTO_INCREMENT,
 |       `user_id` INT(11) NOT NULL,
 |       `key` VARCHAR(40) NOT NULL,
@@ -337,7 +326,7 @@ $config['rest_keys_table'] = 'api_keys';
 |   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 |
 */
-$config['rest_enable_keys'] = true;
+$config['rest_enable_keys'] = false;
 
 /*
 |--------------------------------------------------------------------------
@@ -417,7 +406,7 @@ $config['rest_key_name'] = 'X-API-KEY';
 |   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 |
 */
-$config['rest_enable_logging'] = true;
+$config['rest_enable_logging'] = false;
 
 /*
 |--------------------------------------------------------------------------
@@ -574,7 +563,6 @@ $config['allowed_cors_headers'] = [
   'X-Requested-With',
   'Content-Type',
   'Accept',
-  'X-API-KEY',
   'Access-Control-Request-Method',
 ];
 

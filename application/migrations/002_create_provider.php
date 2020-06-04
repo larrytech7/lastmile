@@ -29,13 +29,12 @@ class Migration_Create_Provider extends CI_Migration{
             ],
             'provider_short_tag' => [
                 'type' => 'VARCHAR',
-                'constraint' => '10',
-                'unique' => true,
+                'constraint' => '15',
                 'null' => true,
             ],
             'provider_status' => [
                 'type' => 'VARCHAR',
-                'constraint' => '15',
+                'constraint' => '5',
                 'null' => true,
             ],
             'delete_time' => [
