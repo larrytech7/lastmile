@@ -3,7 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 ?>
 
 <div id="container">
-	<h1>SEVENPAY MOCK PAYMENTS API</h1>
+	<h1>SEVENPAY MOCK API PAYMENTS API</h1>
 
 	<div id="body">
 

@@ -17,22 +17,19 @@ class Migration_Create_Payments extends CI_Migration{
                 'null' => false
             ],
             'payment_transaction_id' => [
-                'type' => 'varchar',
-                'constraint' => '100',
-                'null' => true
-            ],
-            'payment_amount' => [
-                'type' => 'FLOAT',
+                'type' => 'bigint',
+                'constraint' => '11',
                 'null' => false
             ],
-            'payment_provider' => [
-                'type' => 'varchar',
+            'payment_amount' => [
+                'type' => 'VARCHAR',
+                'constraint' => '512',
+                'null' => false
+            ],
+            'payment_provider_id' => [
+                'type' => 'bigint',
                 'constraint' => '11',
                 'null' => false,
-            ],
-            'payment_callback' => [
-                'type' => 'text',
-                'null' => true,
             ],
             'payment_status' => [
                 'type' => 'ENUM',
@@ -55,6 +52,6 @@ class Migration_Create_Payments extends CI_Migration{
     }
 
     public function down(){
-        $this->dbforge->drop_table('payments');
+        $this->dbforge->drop_table('payments', true);
     }
 }

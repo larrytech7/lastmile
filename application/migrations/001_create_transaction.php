@@ -12,20 +12,9 @@ class Migration_Create_Transaction extends CI_Migration{
 
     public function up(){
         $fields = [
-            'id' => [
-                'type' => 'int',
-                'constraint' => '11',
-                'auto_increment' => true,
-                'null' => false
-            ],
             'transaction_id' => [
                 'type' => 'bigint',
                 'constraint' => '11',
-                'null' => false
-            ],
-            'ext_transaction_id' => [
-                'type' => 'varchar',
-                'constraint' => '128',
                 'null' => false
             ],
             'transaction_amount' => [
@@ -44,7 +33,7 @@ class Migration_Create_Transaction extends CI_Migration{
             ->add_field('create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP')
             ->add_field('update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP')
             ->add_field($fields)
-            ->add_key('id', true)
+            ->add_key('transaction_id', true)
             ->create_table('transactions', true);
     }
 
