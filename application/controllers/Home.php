@@ -8,7 +8,6 @@ use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
 class Home extends ViewController {
 
 	protected $httpAdapter;
-	protected $baseUrl = "https://sandbox.momodeveloper.mtn.com/";
 
 	public function __construct(){
 		parent::__construct('public/header', 'public/footer', 'public/body');
