@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * @author Akah <l.akah@sevenadvancedacademy.com>
+ * @date 15/08/2020
+ * Contributors : 
+ */
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /*
@@ -94,7 +98,7 @@ $config['enable_emulate_request'] = true;
 | e.g: My Secret REST API
 |
 */
-$config['rest_realm'] = 'MOCK MOMO PAY REST API';
+$config['rest_realm'] = 'MINI CRM REST API';
 
 /*
 |--------------------------------------------------------------------------
@@ -137,8 +141,8 @@ $config['auth_source'] = '';
 | requests etc), set to TRUE;
 |
 */
-$config['allow_auth_and_keys'] = false;
-$config['strict_api_and_auth'] = false; // force the use of both api and auth before a valid api request is made
+$config['allow_auth_and_keys'] = true;
+$config['strict_api_and_auth'] = true; // force the use of both api and auth before a valid api request is made
 
 /*
 |--------------------------------------------------------------------------
@@ -213,7 +217,7 @@ $config['auth_library_function'] = '';
 | Array of usernames and passwords for login, if ldap is configured this is ignored
 |
 */
-$config['rest_valid_logins'] = ['sevenpay-payments' => 'sevenpay-payments@2020'];
+$config['rest_valid_logins'] = ['seven-ref' => '*seven-ref@2020*'];
 
 /*
 |--------------------------------------------------------------------------
@@ -301,7 +305,7 @@ $config['rest_database_group'] = 'default';
 | The table name in your database that stores API keys
 |
 */
-$config['rest_keys_table'] = 'keys';
+$config['rest_keys_table'] = 'api_keys';
 
 /*
 |--------------------------------------------------------------------------
@@ -326,7 +330,7 @@ $config['rest_keys_table'] = 'keys';
 |   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 |
 */
-$config['rest_enable_keys'] = false;
+$config['rest_enable_keys'] = true;
 
 /*
 |--------------------------------------------------------------------------
@@ -337,7 +341,7 @@ $config['rest_enable_keys'] = false;
 | column name to match e.g. my_key
 |
 */
-$config['rest_key_column'] = 'key';
+$config['rest_key_column'] = 'api_key';
 
 /*
 |--------------------------------------------------------------------------
@@ -406,7 +410,7 @@ $config['rest_key_name'] = 'X-API-KEY';
 |   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 |
 */
-$config['rest_enable_logging'] = false;
+$config['rest_enable_logging'] = true;
 
 /*
 |--------------------------------------------------------------------------
