@@ -1,11 +1,14 @@
 {
-	"description": "The CodeIgniter starter",
+	"description": "Cafe reseller API",
 	"name": "codeigniter/framework",
 	"type": "project",
 	"require": {
 		"php": ">=7.0.0",
 		"php-http/guzzle6-adapter": "^2.0",
-		"chriskacerguis/codeigniter-restserver": "^3.1"
+		"sendgrid/sendgrid" : "~7",
+		"mpdf/mpdf": "^8.0",
+		"chriskacerguis/codeigniter-restserver": "^3.1",
+		"google/apiclient": "^2.0"
 	},
 	"suggest": {
 		"paragonie/random_compat": "Provides better randomness in PHP 5.x"
